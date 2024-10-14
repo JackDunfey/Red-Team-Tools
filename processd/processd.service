@@ -1,0 +1,14 @@
+[Unit]
+Description=A daemon for managing system processes.
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/etc/processd
+
+[Install]
+WantedBy=multi-user.target
