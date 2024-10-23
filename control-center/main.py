@@ -15,7 +15,8 @@ def processd():
     # Does nothing with return port
     vic_ip = request.json['vic_ip']
     command = request.json['command']
-    output = popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py").read().split("\n", 1)[1]
+    raw = popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py").read()
+    output = raw.split("\n", 1)[1]
     return output
 
 @app.route("/icmp", methods=["POST"])
@@ -23,7 +24,9 @@ def icmp():
     # Does nothing with return port
     vic_ip = request.json['vic_ip']
     command = request.json['command']
-    output = popen(f"echo \"{command}\n\" | python3 {dirname}/../processd/send_command.py {vic_ip}").read().split("\n", 1)[1]
+    raw = popen(f"echo \"{command}\n\" | python3 {dirname}/../processd/send_command.py {vic_ip}").read()
+    print(f"ICMP: {raw}")
+    output = raw.split("\n", 1)[1]
     return output
 
 app.run(host="0.0.0.0", port=80)
