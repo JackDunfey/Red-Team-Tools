@@ -32,6 +32,6 @@ def icmp():
     output = raw.split("\n", 1)[1]
     return output
 
-if __name__ == "__main__"":
+if __name__ == "__main__":
     system("ps -aux | awk '/send_/||/nc -nlp/{print $2}' | xargs kill -9")
     app.run(host="0.0.0.0", port=80)
