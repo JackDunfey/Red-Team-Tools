@@ -12,6 +12,7 @@ def get_IF_NAME():
 keep_sniffing = True
 def process_packet(packet):
     global keep_sniffing
+    print("Has packet")
     if packet.haslayer(TCP) and packet[TCP].dport == RETURN_PORT:
         if packet.haslayer(Raw):
             payload = packet[Raw].load
