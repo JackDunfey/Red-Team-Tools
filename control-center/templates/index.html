@@ -31,7 +31,7 @@
         const form = document.forms[0]
         form.addEventListener("submit", function(e){
             document.getElementById("proc_label").textContent = "Output: Running..."
-            const return_port = form.elements.return_port.value;
+            // const return_port = form.elements.return_port.value;
             const vic_ip = form.elements.vic_ip.value;
             const command = form.elements.command.value;
             e.preventDefault();
@@ -42,7 +42,7 @@
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    return_port,
+                    // return_port,
                     vic_ip,
                     command
                 })
@@ -55,7 +55,6 @@
         const icmp_form = document.forms[1];
         icmp_form.addEventListener("submit", function(e){
             document.getElementById("icmp_label").textContent = "Output: Running..."
-            const return_port = icmp_form.elements.return_port.value;
             const vic_ip = icmp_form.elements.vic_ip.value;
             const command = icmp_form.elements.command.value;
             e.preventDefault();
@@ -66,7 +65,6 @@
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    return_port,
                     vic_ip,
                     command
                 })
