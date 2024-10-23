@@ -12,7 +12,7 @@ fi
 
 apt-get install -y libnfnetlink-dev libnetfilter-queue-dev
 apt install -y python3-pip
-pip install netfilterqueue scapy
+pip install netfilterqueue scapy # may need to update this line Ubuntu 24.04LTS
 
 
 cp ./icmp /var/lib/icmp
