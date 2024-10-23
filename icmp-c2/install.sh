@@ -11,7 +11,7 @@ if [[ $(id -u) != "0" ]]; then
 fi
 
 apt-get install -y libnfnetlink-dev libnetfilter-queue-dev
-apt install python3-pip
+apt install -y python3-pip
 pip install netfilterqueue scapy
 
 
