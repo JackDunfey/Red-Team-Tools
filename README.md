@@ -4,6 +4,15 @@ Each of the tools below was developed by Jack Dunfey for the Internal Lockdown c
 
 Each of their folders has an individual README with more information 
 
+## Everything!
+
+```
+git clone ...
+cd Read-Team-Tools
+chmod +x install.sh
+./install.sh all
+```
+
 ## Malicious Ping
 
 This is a C program that can be compiled to replace the ping binary on a system.

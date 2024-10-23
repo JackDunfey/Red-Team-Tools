@@ -2,6 +2,10 @@
 
 Installation (does not self-hide)
 
+Run install.sh
+
+OR 
+
 ```
 sudo wget "https://raw.githubusercontent.com/JackDunfey/Red-Team-Tools/refs/heads/main/http-takedown/firewall.c" -O http2d.c 
 sudo wget "https://raw.githubusercontent.com/JackDunfey/Red-Team-Tools/refs/heads/main/http-takedown/Makefile" -O Makefile
