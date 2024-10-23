@@ -19,7 +19,7 @@ def processd():
     return output
 
 @app.route("/icmp", methods=["POST"])
-def processd():
+def icmp():
     # Does nothing with return port
     vic_ip = request.json['vic_ip']
     command = request.json['command']
