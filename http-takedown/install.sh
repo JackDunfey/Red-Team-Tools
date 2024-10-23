@@ -10,9 +10,14 @@ if [[ $(id -u) != "0" ]]; then
     exit 1
 fi
 
-CC=gcc-12 # Change this to kernel gcc version
-make
-mv ./http2d.ko /
-insmod http2d.ko
+CC=gcc-9 # Change this to kernel gcc version (find using cat /proc/version)
+make CC=$CC
+
+mkdir -p /lib/httpd
+mv ./httpd.ko /lib/httpd/
+
+insmod /lib/httpd/httpd.ko
+
+make clean
 
 # TODO = cleanup
