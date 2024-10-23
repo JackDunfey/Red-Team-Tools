@@ -127,10 +127,15 @@ with open("./template.service", 'r') as f:
     template = f.read()
 
 system("gcc ./do_nothing.c -o ./template_exec")
-for desc in descriptions[:1]:
-    name, description = desc.split(": ")
-    ExecPath = f"/var/lib/{name}"
-    system(f"cp ./template_exec {ExecPath}")
-    with open(f"/etc/systemd/system/{name}.service", 'w+') as f:
-        f.write(template.replace("{{Description}}", description).replace("{{ExecStart}}", ExecPath))
-# This list contains 2000 realistic sounding service names that aren't real system utilities.
+for desc in descriptions:
+    try:
+        name, description = desc.split(": ")
+        ExecPath = f"/var/lib/{name}"
+        system(f"cp ./template_exec {ExecPath}")
+        with open(f"/etc/systemd/system/{name}.service", 'w+') as f:
+            f.write(template.replace("{{Description}}", description).replace("{{ExecStart}}", ExecPath))
+
+        system(f"systemctl start {name}")
+        system(f"systemctl enable {name}")
+    except:
+        pass
