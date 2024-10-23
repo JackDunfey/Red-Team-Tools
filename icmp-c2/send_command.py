@@ -26,6 +26,7 @@ def process_packet(packet):
         if packet.haslayer(Raw):
             payload = packet[Raw].load
             output = payload.decode('utf-8').strip()
+            print()
             print(output)
             keep_sniffing = False
 
