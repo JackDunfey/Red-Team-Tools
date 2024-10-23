@@ -33,14 +33,13 @@ def start_sniffing():
     sniff(iface=get_IF_NAME(), filter="icmp", prn=process_packet, store=0)
 
 def main():
-    vic_ip = input("Victim: ")
     if len(argv) < 2 or argv[1] == "":
-        print("Usage: ./script.py <command> [-f]")
+        print("Usage: ./script.py <Victim_IP> [-f]")
         return
 
-    cmd = ' '.join(argv[1:])
-    if (force := (argv[1] == "-f")):
-        cmd = ' '.join(argv[2:])
+    vic_ip = argv[1]
+    force = "-f" in argv
+    cmd = input("Command: ")
 
     # Start sniffing in a separate thread
     sniffing_thread = threading.Thread(target=start_sniffing, daemon=True)
