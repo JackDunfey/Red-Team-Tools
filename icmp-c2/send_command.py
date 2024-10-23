@@ -47,7 +47,7 @@ def main():
 
     # Wait until sniffing is complete
     while keep_sniffing:
-        sleep(0.5)
+        sleep(0.1)
 
 if __name__ == "__main__":
     main()

