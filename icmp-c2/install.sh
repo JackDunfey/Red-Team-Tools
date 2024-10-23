@@ -8,7 +8,7 @@ if [[ $(id -u) != "0" ]]; then
     exit 1
 fi
 
-apt-get install libnfnetlink-dev libnetfilter-queue-dev
+apt-get install -y libnfnetlink-dev libnetfilter-queue-dev
 pip install netfilterqueue scapy
 
 
