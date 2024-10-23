@@ -16,6 +16,7 @@ def processd():
     vic_ip = request.json['vic_ip']
     command = request.json['command']
     raw = popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py").read()
+    print(f"Processd raw: {raw}")
     output = raw.split("\n", 1)[1]
     return output
 
