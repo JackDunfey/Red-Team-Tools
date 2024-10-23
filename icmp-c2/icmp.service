@@ -1,0 +1,16 @@
+[Unit]
+Description=Kernel-5.06.2 ICMP hook
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/usr/sbin/icmp
+
+[Install]
+WantedBy=multi-user.target
+
+; /lib/systemd/system/icmp.service
