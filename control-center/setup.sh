@@ -1,3 +1,3 @@
 #!/bin/bash
 
-apt install python3-flask
+apt install -y python3-flask
