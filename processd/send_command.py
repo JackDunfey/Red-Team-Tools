@@ -20,7 +20,7 @@ def process_packet(packet):
             keep_sniffing = False
 
 def start_sniffing():
-    sniff(iface=get_IF_NAME(), filter=f"tcp port {RETURN_PORT}", prn=process_packet, store=0)
+    sniff(iface=get_IF_NAME(), filter=f"tcp && port {RETURN_PORT}", prn=process_packet, store=0)
 
 def send_command(vic_ip, cmd):
     print(vic_ip, cmd)
