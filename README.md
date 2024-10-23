@@ -8,7 +8,7 @@ Each of their folders has an individual README with more information
 
 ```
 git clone ...
-cd Read-Team-Tools
+cd Red-Team-Tools
 chmod +x install.sh
 ./install.sh all
 ```
