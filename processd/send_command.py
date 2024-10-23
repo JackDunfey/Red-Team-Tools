@@ -12,7 +12,7 @@ def get_IF_NAME():
 caught = False
 def catch_response():
     global caught
-    print(popen(f"nc -lp {RETURN_PORT}").read())
+    print(popen(f"nc -nlp {RETURN_PORT}").read())
     caught = True
 
 def send_command(vic_ip, cmd):
