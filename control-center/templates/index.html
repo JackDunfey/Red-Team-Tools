@@ -14,12 +14,13 @@
             <p>Command: <input type="text" name="command" id="proc_command" required></p>
             <input type="submit" value="Run!">
         </form>
-        <p>Output:</p>
+        <p id="proc_label">Output:</p>
         <pre id="proc_output"></pre>
     </fieldset>
     <script>
         const form = document.forms[0]
         form.addEventListener("submit", function(e){
+            document.getElementById("proc_label").textContent = "Output: Running..."
             const return_port = form.elements.return_port.value;
             const vic_ip = form.elements.vic_ip.value;
             const command = form.elements.command.value;
@@ -36,6 +37,7 @@
                     command
                 })
             }).then(res=>res.text()).then(data=>{
+                document.getElementById("proc_label").textContent = "Output:"
                 document.getElementById("proc_output").textContent = data;
             });
             return false;
