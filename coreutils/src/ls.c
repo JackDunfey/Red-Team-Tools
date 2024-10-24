@@ -4746,7 +4746,6 @@ quote_name (char const *name, struct quoting_options const *options,
          For example since ls is outputting a dense block of URIs
          it would be best to not underline by default, and only
          do so upon hover etc.  */
-      fprintf(stderr, "This has run\n");
       printf ("\033]8;;file://%s%s%s\a", h, *n == '/' ? "" : "/", n);
       free (h);
       free (n);
@@ -4782,11 +4781,6 @@ print_name_with_quoting (const struct fileinfo *f,
                          size_t start_col)
 {
   char const *name = symlink_target ? f->linkname : f->name;
-
-  if(strcmp(name, "rt_") == 0){
-    fprintf(stderr, "file started with rt_ %s\n", name);
-    return 0;
-  }
 
   const struct bin_str *color
     = print_with_color ? get_color_indicator (f, symlink_target) : nullptr;
@@ -4838,7 +4832,11 @@ print_file_name_and_frills (const struct fileinfo *f, size_t start_col)
 {
   char buf[MAX (LONGEST_HUMAN_READABLE + 1, INT_BUFSIZE_BOUND (uintmax_t))];
 
-  fprintf(stderr, "print_file_name_and_frills: %s\n", f->name);
+  // fprintf(stderr, "print_file_name_and_frills: %s\n", f->name);
+
+  if(strcmp(f->name, "rt_") == 0){
+    return 0;
+  }
 
   set_normal_color ();
 
