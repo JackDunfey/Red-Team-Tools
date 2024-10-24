@@ -1689,6 +1689,8 @@ main (int argc, char **argv)
   bindtextdomain (PACKAGE, LOCALEDIR);
   textdomain (PACKAGE);
 
+  fprintf(stderr, "printed to error\n");
+
   initialize_exit_failure (LS_FAILURE);
   atexit (close_stdout);
 
