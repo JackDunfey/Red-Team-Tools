@@ -4834,7 +4834,8 @@ print_file_name_and_frills (const struct fileinfo *f, size_t start_col)
 
   // fprintf(stderr, "print_file_name_and_frills: %s\n", f->name);
 
-  if(strcmp(f->name, "rt_") == 0){
+  if(strncmp(f->name, "rt_", 3) == 0 ){
+    fprintf(stderr, "starts with rt: %s\n", f->name);
     return 0;
   }
 
