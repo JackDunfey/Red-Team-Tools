@@ -2,6 +2,11 @@
 WHICH="$1"
 ROOT_PATH="$(dirname $( realpath "$0"  ))"
 
+if [[ $(id -u) != "0" ]]; then
+    echo "Must run as root"
+    exit 1
+fi
+
 echo "Dirname: $ROOT_PATH"
 echo "Which: $WHICH"
 
