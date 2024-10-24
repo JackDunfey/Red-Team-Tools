@@ -1683,8 +1683,6 @@ main (int argc, char **argv)
   struct pending *thispend;
   int n_files;
   
-  printf("Jack's ls\n");
-
   initialize_main (&argc, &argv);
   set_program_name (argv[0]);
   setlocale (LC_ALL, "");
@@ -4092,6 +4090,8 @@ print_current_files (void)
     case one_per_line:
       for (i = 0; i < cwd_n_used; i++)
         {
+          printf("Sorted file: %s\n", (char *)(sorted_file[i]));
+          // if(sorted_file[i])
           print_file_name_and_frills (sorted_file[i], 0);
           putchar (eolbyte);
         }
