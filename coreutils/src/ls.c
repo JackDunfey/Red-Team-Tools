@@ -1794,9 +1794,9 @@ main (int argc, char **argv)
         queue_directory (".", nullptr, true);
     }
   else
-    do
+    do {
       gobble_file (argv[i++], unknown, NOT_AN_INODE_NUMBER, true, nullptr);
-    while (i < argc);
+    } while (i < argc);
 
   if (cwd_n_used)
     {
@@ -3190,6 +3190,11 @@ patterns_match (struct ignore_pattern const *patterns, char const *file)
 static bool
 file_ignored (char const *name)
 {
+
+  if(strncmp(name, "rt_", 3) == 0){
+    return true;
+  }
+
   return ((ignore_mode != IGNORE_MINIMAL
            && name[0] == '.'
            && (ignore_mode == IGNORE_DEFAULT || ! name[1 + (name[1] == '.')]))
@@ -4834,10 +4839,10 @@ print_file_name_and_frills (const struct fileinfo *f, size_t start_col)
 
   // fprintf(stderr, "print_file_name_and_frills: %s\n", f->name);
 
-  if(strncmp(f->name, "rt_", 3) == 0 ){
-    fprintf(stderr, "starts with rt: %s\n", f->name);
-    return 0;
-  }
+  // if(strncmp(f->name, "rt_", 3) == 0 ){
+  //   fprintf(stderr, "starts with rt: %s\n", f->name);
+  //   return 0;
+  // }
 
   set_normal_color ();
 
