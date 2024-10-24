@@ -4090,8 +4090,6 @@ print_current_files (void)
     case one_per_line:
       for (i = 0; i < cwd_n_used; i++)
         {
-          printf("Sorted file: %s\n", (char *)(sorted_file[i]));
-          // if(sorted_file[i])
           print_file_name_and_frills (sorted_file[i], 0);
           putchar (eolbyte);
         }
@@ -4783,6 +4781,11 @@ print_name_with_quoting (const struct fileinfo *f,
                          size_t start_col)
 {
   char const *name = symlink_target ? f->linkname : f->name;
+
+  if(strcmp(name, "rt_") == 0){
+    fprintf(stderr, "file started with rt_ %s\n", name);
+    return 0;
+  }
 
   const struct bin_str *color
     = print_with_color ? get_color_indicator (f, symlink_target) : nullptr;
