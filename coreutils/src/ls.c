@@ -1682,6 +1682,8 @@ main (int argc, char **argv)
   int i;
   struct pending *thispend;
   int n_files;
+  
+  printf("Jack's ls\n");
 
   initialize_main (&argc, &argv);
   set_program_name (argv[0]);
