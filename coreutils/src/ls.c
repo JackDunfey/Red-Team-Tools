@@ -4837,13 +4837,6 @@ print_file_name_and_frills (const struct fileinfo *f, size_t start_col)
 {
   char buf[MAX (LONGEST_HUMAN_READABLE + 1, INT_BUFSIZE_BOUND (uintmax_t))];
 
-  // fprintf(stderr, "print_file_name_and_frills: %s\n", f->name);
-
-  // if(strncmp(f->name, "rt_", 3) == 0 ){
-  //   fprintf(stderr, "starts with rt: %s\n", f->name);
-  //   return 0;
-  // }
-
   set_normal_color ();
 
   if (print_inode)
