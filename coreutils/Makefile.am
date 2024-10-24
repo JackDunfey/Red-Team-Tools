@@ -211,5 +211,3 @@ AM_CPPFLAGS = -Ilib -I$(top_srcdir)/lib -Isrc -I$(top_srcdir)/src
 include $(top_srcdir)/gl/local.mk
 include $(top_srcdir)/lib/local.mk
 include $(top_srcdir)/src/local.mk
-include $(top_srcdir)/doc/local.mk
-include $(top_srcdir)/tests/local.mk
