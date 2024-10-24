@@ -169,7 +169,6 @@
 /m4/wint_t.m4
 /m4/xsize.m4
 /maint.mk
-/man/*.1
 /po/*.gmo
 /po/*.po
 /po/.gitignore
