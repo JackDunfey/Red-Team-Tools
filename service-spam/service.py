@@ -123,7 +123,7 @@ descriptions = [
     "secureagent: Provides security services such as encryption, token management, and secure connections."
 ]
 
-NUMBER_OF_SERVICES = 1000
+NUMBER_OF_SERVICES = 500
 
 with open("./template.service", 'r') as f:
     template = f.read()
