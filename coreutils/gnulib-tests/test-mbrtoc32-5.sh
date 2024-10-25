@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mbrtoc32-5.sh

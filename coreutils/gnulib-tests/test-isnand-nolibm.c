@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-isnand-nolibm.c

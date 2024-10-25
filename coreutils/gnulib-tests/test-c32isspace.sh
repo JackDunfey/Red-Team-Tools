@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-c32isspace.sh

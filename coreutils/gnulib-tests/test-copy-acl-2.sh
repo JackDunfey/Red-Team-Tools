@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-copy-acl-2.sh

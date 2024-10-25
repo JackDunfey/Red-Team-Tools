@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/nl_langinfo-lock.c

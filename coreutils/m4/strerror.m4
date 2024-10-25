@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/m4/strerror.m4

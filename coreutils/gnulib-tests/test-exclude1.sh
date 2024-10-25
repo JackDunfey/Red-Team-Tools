@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-exclude1.sh

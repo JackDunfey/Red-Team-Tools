@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mbsrtoc32s-1.sh

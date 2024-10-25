@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-c32rtomb-w32-6.sh

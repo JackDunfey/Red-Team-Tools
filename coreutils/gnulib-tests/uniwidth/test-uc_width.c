@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/uniwidth/test-uc_width.c

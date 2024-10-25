@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/basename-lgpl.c

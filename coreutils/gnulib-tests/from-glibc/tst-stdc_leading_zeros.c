@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/from-glibc/tst-stdc_leading_zeros.c

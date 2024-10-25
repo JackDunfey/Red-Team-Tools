@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mbrtowc-5.sh

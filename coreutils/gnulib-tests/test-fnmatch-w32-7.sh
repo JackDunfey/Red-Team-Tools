@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-fnmatch-w32-7.sh

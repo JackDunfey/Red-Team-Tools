@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-setlocale_null-mt-all.c

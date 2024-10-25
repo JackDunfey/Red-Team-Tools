@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-file-has-acl-2.sh

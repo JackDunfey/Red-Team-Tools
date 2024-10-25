@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/m4/quote.m4

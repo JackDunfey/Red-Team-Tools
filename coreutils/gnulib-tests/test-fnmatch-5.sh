@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-fnmatch-5.sh

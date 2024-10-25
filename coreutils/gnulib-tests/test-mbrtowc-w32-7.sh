@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mbrtowc-w32-7.sh

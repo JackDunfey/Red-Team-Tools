@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/from-glibc/support/test-driver.c

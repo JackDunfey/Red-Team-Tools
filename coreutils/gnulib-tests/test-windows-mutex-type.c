@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-windows-mutex-type.c

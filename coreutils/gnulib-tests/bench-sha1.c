@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/bench-sha1.c

@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-vc-list-files-git.sh

@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/c32_get_type_test.c

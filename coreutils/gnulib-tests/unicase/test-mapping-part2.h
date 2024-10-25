@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/unicase/test-mapping-part2.h

@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/unistr/test-u32-cpy.c

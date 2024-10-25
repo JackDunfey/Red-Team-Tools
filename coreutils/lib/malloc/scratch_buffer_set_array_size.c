@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/malloc/scratch_buffer_set_array_size.c

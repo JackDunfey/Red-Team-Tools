@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/c32_apply_type_test.c

@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-base64.c

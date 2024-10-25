@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-pthread-mutex-type.c

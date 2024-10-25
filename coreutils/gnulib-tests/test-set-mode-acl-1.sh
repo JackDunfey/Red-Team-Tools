@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-set-mode-acl-1.sh

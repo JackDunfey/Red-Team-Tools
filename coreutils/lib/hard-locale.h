@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/hard-locale.h

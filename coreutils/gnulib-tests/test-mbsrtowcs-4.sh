@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mbsrtowcs-4.sh

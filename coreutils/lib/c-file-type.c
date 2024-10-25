@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/c-file-type.c

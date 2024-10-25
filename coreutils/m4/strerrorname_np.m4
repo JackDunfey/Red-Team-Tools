@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/m4/strerrorname_np.m4

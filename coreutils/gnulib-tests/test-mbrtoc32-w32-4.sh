@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mbrtoc32-w32-4.sh

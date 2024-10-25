@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-fopen-safer.c

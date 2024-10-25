@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/bench-sha384.c

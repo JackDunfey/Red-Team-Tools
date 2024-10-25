@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-thread_self.c

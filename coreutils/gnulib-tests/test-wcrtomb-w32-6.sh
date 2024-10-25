@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-wcrtomb-w32-6.sh

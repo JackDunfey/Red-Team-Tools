@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/tests/test-mcel-5.sh

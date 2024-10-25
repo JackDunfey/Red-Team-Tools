@@ -1,0 +1,1 @@
+/root/coreutils/gnulib/lib/write-any-file.c
