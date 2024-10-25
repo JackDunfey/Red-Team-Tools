@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "initializer_list": "c",
+        "xutility": "c"
+    }
+}
