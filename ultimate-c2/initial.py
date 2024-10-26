@@ -1,3 +1,7 @@
+def get_my_mac(IF_NAME):
+    with open("/sys/class/net/{IF_NAME}/address", 'r') as f:
+        return f.read()
+
 def get_iface_info():
     ifaces = []
     with open("/proc/net/route", 'r') as f:
@@ -17,7 +21,7 @@ def get_default_gateway():
             b = g[2:4]
             c = g[4:6]
             d = g[6:8]
-            return f"{int(d, 16)}.{int(c, 16)}.{int(b, 16)}.{int(a, 16)}"
+            return iface["iface"], f"{int(d, 16)}.{int(c, 16)}.{int(b, 16)}.{int(a, 16)}"
         
     return None
 
@@ -26,25 +30,23 @@ def arp(ip):
     fields = popen(f"ip neigh show {ip}", 'r').read().split()
     return fields[fields.index("lladdr") + 1]
 
+def send_arp_data(data):
+    IF_NAME, gateway = get_default_gateway()
+    gateway_mac = arp(gateway)
+    
+    my_mac = get_my_mac()
+    my_ip = popen("hostname -I", 'r').read().strip()
+
+    arp_reply = ARP(op=ARP.is_at, psrc=my_ip, hwsrc=my_mac, pdst=gateway)
+
+    ether = Ether(dst=gateway_mac)
+
+    packet = ether / arp_reply / Raw(load=data)
+
 from scapy.all import ARP, Ether, srp, conf, Raw
+# srp!!
 def main():
-    # Set the target IP address (default gateway)
-    target_ip = get_default_gateway()  # Replace with your gateway IP
-
-    # Create an ARP request
-    arp_request = ARP(pdst=target_ip)
-    # Create an Ethernet frame
-    ether = Ether(dst=arp(target_ip))  # Broadcast MAC address
-
-    # Combine them
-    packet = ether / arp_request / Raw(load="Hello")
-
-    # Send the packet and capture the response
-    result = srp(packet, timeout=2, verbose=False)[0]
-
-    # Process the response
-    for sent, received in result:
-        print(f"IP: {received.psrc}, MAC: {received.hwsrc}")
+    send_arp_data("709505")
 
 if __name__ == "__main__":
     main()
