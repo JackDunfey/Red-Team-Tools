@@ -120,7 +120,9 @@
                     command: document.forms[0].elements.command.value,
                     use: document.forms[0].elements.use.value
                 })
-            }).then(res=>res.json()).then(json=>{
+            }).then(res=>res.text()).then(json=>{
+                console.log(json)
+                return;
                 document.getElementById("outputs").innerHTML = "";
                 const data = JSON.parse(json)
                 window.data = data;
