@@ -67,6 +67,12 @@
         </select></p>
         <p><input type="submit" value="Run"></p>
     </form>
+    <fieldset>
+        <legend>Output</legend>
+        See output from:
+        <select name="" id="outputs"></select>
+        <pre id="output"></pre>
+    </fieldset>
     <script>
         const tbody = document.getElementById("tbody");
         const machine_ips = [60,10,40,30,70,80]
@@ -114,8 +120,23 @@
                     command: document.forms[0].elements.command.value,
                     use: document.forms[0].elements.use.value
                 })
-            }).then(res=>res.text()).then(console.log)
-        })
+            }).then(res=>res.json()).then(json=>{
+                document.getElementById("outputs").innerHTML = "";
+                const data = JSON.parse(json)
+                window.data = data;
+                for(let key of Object.keys(data)){
+                    const option = document.createElement("option");
+                    option.value = key;
+                    option.textContent = key;
+                    document.getElementById("outputs").append(option);
+                }
+            })
+        });
+
+        document.getElementById("outputs").addEventListener("change", function(e){
+            const value = e.target.value;
+            document.getElementById("output").textContent = value;
+        });
 
         // const form = document.forms[0]
         // form.addEventListener("submit", function(e){
