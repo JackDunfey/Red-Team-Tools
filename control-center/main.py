@@ -17,24 +17,24 @@ def icmp_at(vic_ip, command, outputs=None):
     print(f"Trying {vic_ip}")
     with popen(f"echo \"{command}\n\" | python3 {dirname}/../icmp-c2/send_command.py {vic_ip}") as f:
         raw = f.read()
-    output = raw.split("\n", 1)[1]
-    print(f"{vic_ip}: {output}")
-    if outputs is not None:
-        with mutex:
-            outputs[vic_ip] = output
-    else:
-        return output
+    with mutex:
+        output = raw.split("\n", 1)[1]
+        print(f"{vic_ip}: {output}")
+        if outputs is not None:
+                outputs[vic_ip] = output
+        else:
+            return output
 def http_at(vic_ip, command, outputs=None):
     print(f"Trying {vic_ip}")
     with popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py") as f:
         raw = f.read()
-    output = raw.split("\n", 1)[1]
-    print(f"{vic_ip}: {output}")
-    if outputs is not None:
-        with mutex:
+    with mutex:
+        output = raw.split("\n", 1)[1]
+        print(f"{vic_ip}: {output}")
+        if outputs is not None:
             outputs[vic_ip] = output
-    else:
-        return output
+        else:
+            return output
 
 device_mappings = {
     "ad": 60,
