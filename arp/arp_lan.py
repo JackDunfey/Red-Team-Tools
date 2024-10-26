@@ -31,6 +31,7 @@ def arp(ip):
     return fields[fields.index("lladdr") + 1]
 
 from scapy.all import ARP, Ether, send, srp, conf, Raw
+conf.iface = get_default_gateway()[0]
 def send_arp_data(data):
     IF_NAME, gateway = get_default_gateway()
     gateway_mac = arp(gateway)
