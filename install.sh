@@ -78,6 +78,6 @@ fi
 if [[ "$WHICH" == "services" ]]; then
     serviceSpam
 fi
-if [[ " " == "night-before" ]]; then
+if [[ "$WHICH" == "night-before" ]]; then
     rt_quick
 fi
