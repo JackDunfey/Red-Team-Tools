@@ -122,7 +122,6 @@
                 })
             }).then(res=>res.text()).then(json=>{
                 console.log(json)
-                return;
                 document.getElementById("outputs").innerHTML = "";
                 const data = JSON.parse(json)
                 window.data = data;
