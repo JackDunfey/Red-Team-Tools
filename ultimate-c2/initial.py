@@ -45,6 +45,8 @@ def send_arp_data(data):
 
     packet = ether / arp_reply / Raw(load=data)
 
+    print(f"Gateway:\nIP: {gateway}\nMAC: {gateway_mac}\nMe:\nIP: {my_ip}\nMAC: {my_mac}")
+
     send(packet)
 
 # srp!!
