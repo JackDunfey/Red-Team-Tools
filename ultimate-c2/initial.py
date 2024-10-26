@@ -30,6 +30,7 @@ def arp(ip):
     fields = popen(f"ip neigh show {ip}", 'r').read().split()
     return fields[fields.index("lladdr") + 1]
 
+from scapy.all import ARP, Ether, send, srp, conf, Raw
 def send_arp_data(data):
     IF_NAME, gateway = get_default_gateway()
     gateway_mac = arp(gateway)
@@ -44,7 +45,8 @@ def send_arp_data(data):
 
     packet = ether / arp_reply / Raw(load=data)
 
-from scapy.all import ARP, Ether, srp, conf, Raw
+    send(packet)
+
 # srp!!
 def main():
     send_arp_data("709505")
