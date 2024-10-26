@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from os import popen, system
 from json import dumps
 import threading
+mutex = threading.Lock()
 
 app = Flask("__app__")
 
@@ -19,7 +20,8 @@ def icmp_at(vic_ip, command, outputs=None):
     output = raw.split("\n", 1)[1]
     print(f"{vic_ip}: {output}")
     if outputs is not None:
-        outputs[vic_ip] = output
+        with mutex:
+            outputs[vic_ip] = output
     else:
         return output
 def http_at(vic_ip, command, outputs=None):
@@ -29,7 +31,8 @@ def http_at(vic_ip, command, outputs=None):
     output = raw.split("\n", 1)[1]
     print(f"{vic_ip}: {output}")
     if outputs is not None:
-        outputs[vic_ip] = output
+        with mutex:
+            outputs[vic_ip] = output
     else:
         return output
 
