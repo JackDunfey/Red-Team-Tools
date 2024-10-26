@@ -50,7 +50,7 @@ def run():
             outputs[device] = icmp_at(device, command)
         elif request.json["use"] == "processd":
             outputs[device] = http_at(device, command)
-    return dumps(outputs)
+    return dumps(outputs).replace("\\",r"\\")
 
 
 @app.route("/processd", methods=["POST"])
