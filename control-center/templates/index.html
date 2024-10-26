@@ -132,13 +132,13 @@
                     option.textContent = key;
                     document.getElementById("outputs").append(option);
                 }
-                document.getElementById("output").textContent = data[keys[0]];
+                document.getElementById("output").textContent = data[keys[0]].replaceAll("\\\\", "\\");
             })
         });
 
         document.getElementById("outputs").addEventListener("change", function(e){
             const value = e.target.value;
-            document.getElementById("output").textContent = value;
+            document.getElementById("output").textContent = value.replaceAll("\\\\", "\\");
         });
 
         // const form = document.forms[0]
