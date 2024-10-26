@@ -41,7 +41,7 @@ def send_arp_data(data):
     # 2 = reply
     arp_reply = ARP(op=2, psrc=my_ip, hwsrc=my_mac, pdst=gateway, hwdst=gateway_mac)
 
-    ether = Ether(dst=gateway_mac)
+    ether = Ether(dst=gateway_mac, src=my_mac)
 
     packet = ether / arp_reply # / Raw(load=data)
 
