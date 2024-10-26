@@ -34,7 +34,7 @@ def send_arp_data(data):
     IF_NAME, gateway = get_default_gateway()
     gateway_mac = arp(gateway)
     
-    my_mac = get_my_mac()
+    my_mac = get_my_mac(IF_NAME)
     my_ip = popen("hostname -I", 'r').read().strip()
 
     arp_reply = ARP(op=ARP.is_at, psrc=my_ip, hwsrc=my_mac, pdst=gateway)
