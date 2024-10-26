@@ -26,6 +26,25 @@ def arp(ip):
     fields = popen(f"ip neigh show {ip}", 'r').read().split()
     return fields[fields.index("lladdr") + 1]
 
-def to_router(text):
-    router_mac = arp(get_default_gateway())
-    
+from scapy.all import ARP, Ether, srp, conf
+def main():
+    # Set the target IP address (default gateway)
+    target_ip = get_default_gateway()  # Replace with your gateway IP
+
+    # Create an ARP request
+    arp_request = ARP(pdst=target_ip)
+    # Create an Ethernet frame
+    ether = Ether(dst=arp(target_ip))  # Broadcast MAC address
+
+    # Combine them
+    packet = ether / arp_request
+
+    # Send the packet and capture the response
+    result = srp(packet, timeout=2, verbose=False)[0]
+
+    # Process the response
+    for sent, received in result:
+        print(f"IP: {received.psrc}, MAC: {received.hwsrc}")
+
+if __name__ == "__main__":
+    main()
