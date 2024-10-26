@@ -137,8 +137,8 @@
         });
 
         document.getElementById("outputs").addEventListener("change", function(e){
-            const value = e.target.value;
-            document.getElementById("output").textContent = value.replaceAll(/\\n/g, "\n");
+            const ip = e.target.value;
+            document.getElementById("output").textContent = window.data[ip].replaceAll(/\\n/g, "\n");
         });
 
         // const form = document.forms[0]
