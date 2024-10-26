@@ -125,12 +125,14 @@
                 document.getElementById("outputs").innerHTML = "";
                 const data = JSON.parse(json)
                 window.data = data;
-                for(let key of Object.keys(data)){
+                const keys = Object.keys(data);
+                for(let key of keys){
                     const option = document.createElement("option");
                     option.value = key;
                     option.textContent = key;
                     document.getElementById("outputs").append(option);
                 }
+                document.getElementById("output").textContent = data[keys[0]];
             })
         });
 
