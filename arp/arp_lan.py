@@ -39,7 +39,7 @@ def send_arp_data(data):
     my_ip = popen("hostname -I", 'r').read().strip()
 
     # 2 = reply
-    arp_reply = ARP(op=2, psrc=my_ip, hwsrc=my_mac, pdst=gateway)
+    arp_reply = ARP(op=2, psrc=my_ip, hwsrc=my_mac, pdst=gateway, hwdst=gateway_mac)
 
     ether = Ether(dst=gateway_mac)
 
