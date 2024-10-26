@@ -1,5 +1,5 @@
 def get_my_mac(IF_NAME):
-    with open("/sys/class/net/{IF_NAME}/address", 'r') as f:
+    with open(f"/sys/class/net/{IF_NAME}/address", 'r') as f:
         return f.read()
 
 def get_iface_info():
