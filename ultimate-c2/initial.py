@@ -37,7 +37,8 @@ def send_arp_data(data):
     my_mac = get_my_mac(IF_NAME)
     my_ip = popen("hostname -I", 'r').read().strip()
 
-    arp_reply = ARP(op=ARP.is_at, psrc=my_ip, hwsrc=my_mac, pdst=gateway)
+    # 2 = reply
+    arp_reply = ARP(op=2, psrc=my_ip, hwsrc=my_mac, pdst=gateway)
 
     ether = Ether(dst=gateway_mac)
 
