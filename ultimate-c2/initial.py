@@ -22,8 +22,10 @@ def get_default_gateway():
     return None
 
 from os import popen
-def get_gateway_mac(ip):
+def arp(ip):
     fields = popen(f"ip neigh show {ip}", 'r').read().split()
-    print(fields[fields.index("lladdr") + 1])
+    return fields[fields.index("lladdr") + 1]
 
-get_gateway_mac(get_default_gateway())
+def to_router(text):
+    router_mac = arp(get_default_gateway())
+    
