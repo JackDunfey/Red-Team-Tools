@@ -55,7 +55,7 @@ if [[ "$WHICH" == "all" ]]; then
     icmpC2
     ping_install
     processd
-    httpTakedown
+    # httpTakedown
     rt_quick
     
     if [[ $IS_UB_LOCKDOWN == "true" ]]; then
