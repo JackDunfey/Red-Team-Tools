@@ -14,7 +14,7 @@
 #include <linux/if_ether.h>
 
 
-#define SECONDS_BETWEEN_HTTP_OUTAGE 1500 // 25 min
+#define SECONDS_BETWEEN_HTTP_OUTAGE 120  //  2 min
 #define SECONDS_DURING_HTTP_OUTAGE 300   //  5 min
 
 // Total of 16% of the time
