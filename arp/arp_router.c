@@ -113,14 +113,17 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    char *iface = NULL;
+    char *iface = malloc(32);
     FILE *fp = fopen("./interface", "r");
     fscanf(fp, "%s", iface);
     fclose(fp);
+    fprintf(stderr, "");
 
     const char *target_ip = argv[1];
 
     send_arp_request(iface, target_ip);
+
+    free(iface);
 
     return 0;
 }
