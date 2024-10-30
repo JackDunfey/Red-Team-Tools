@@ -115,9 +115,9 @@ int main(int argc, char *argv[]) {
 
     const char *iface = NULL;
     FILE *fp = fopen("./interface", "r");
-    fscanf(fp, "%s", &iface);
+    fscanf(fp, "%s", iface);
     fclose(fp);
-    
+
     const char *target_ip = argv[1];
 
     send_arp_request(iface, target_ip);
