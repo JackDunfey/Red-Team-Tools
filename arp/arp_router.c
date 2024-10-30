@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    const char *iface = NULL;
+    char *iface = NULL;
     FILE *fp = fopen("./interface", "r");
     fscanf(fp, "%s", iface);
     fclose(fp);
