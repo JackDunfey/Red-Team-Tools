@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
     FILE *fp = fopen("./interface", "r");
     fscanf(fp, "%s", iface);
     fclose(fp);
-    fprintf(stderr, "");
+    fprintf(stderr, "Iface: %s\n", iface);
 
     const char *target_ip = argv[1];
 
