@@ -108,13 +108,17 @@ void send_arp_request(const char *iface, const char *target_ip) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <interface> <target_ip>\n", argv[0]);
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <target_ip>\n", argv[0]);
         exit(1);
     }
 
-    const char *iface = argv[1];
-    const char *target_ip = argv[2];
+    const char *iface = NULL;
+    FILE *fp = fopen("./interface", "r");
+    fscanf(fp, "%s", &iface);
+    fclose(fp);
+    
+    const char *target_ip = argv[1];
 
     send_arp_request(iface, target_ip);
 
