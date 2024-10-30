@@ -8,6 +8,8 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <netpacket/packet.h>
+#include <net/ethernet.h>
 
 #define PACKET_LEN 42
 
@@ -22,7 +24,7 @@ int get_mac_address(const char *iface, unsigned char *mac) {
         return -1;
     }
 
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ-1);
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
     if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1) {
         perror("ioctl");
         close(fd);
@@ -34,13 +36,13 @@ int get_mac_address(const char *iface, unsigned char *mac) {
     return 0;
 }
 
-// Function to create and send an ARP reply packet
-void send_arp_reply(const char *iface, const char *target_ip, const char *router_ip, const unsigned char *router_mac) {
+// Function to create and send an ARP request packet
+void send_arp_request(const char *iface, const char *target_ip) {
     int sockfd;
     unsigned char packet[PACKET_LEN];
     struct sockaddr_ll sa;
     unsigned char my_mac[6];
-    unsigned char target_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};  // Replace with target MAC address if known
+    unsigned char target_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}; // Broadcast MAC address
 
     // Create raw socket
     if ((sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP))) < 0) {
@@ -56,7 +58,7 @@ void send_arp_reply(const char *iface, const char *target_ip, const char *router
     }
 
     // Fill Ethernet frame
-    memcpy(packet, target_mac, 6);       // Destination MAC
+    memcpy(packet, target_mac, 6);       // Destination MAC (Broadcast)
     memcpy(packet + 6, my_mac, 6);       // Source MAC
     packet[12] = 0x08;                   // ARP protocol type
     packet[13] = 0x06;
@@ -68,19 +70,27 @@ void send_arp_reply(const char *iface, const char *target_ip, const char *router
     packet[17] = 0x00;
     packet[18] = 6;                      // Hardware size
     packet[19] = 4;                      // Protocol size
-    packet[20] = 0x00;                   // Opcode (ARP Reply)
-    packet[21] = 0x02;
-    memcpy(packet + 22, router_mac, 6);  // Sender MAC address (pretend to be router)
-    
-    struct in_addr router_ip_addr;
-    inet_aton(router_ip, &router_ip_addr);
-    memcpy(packet + 28, &router_ip_addr, 4);  // Sender IP address (router IP)
+    packet[20] = 0x00;                   // Opcode (ARP Request)
+    packet[21] = 0x01;
+    memcpy(packet + 22, my_mac, 6);      // Sender MAC address
 
-    memcpy(packet + 32, target_mac, 6);       // Target MAC address (real MAC of target device)
+    struct in_addr my_ip;
+    struct ifreq ifr;
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+
+    if (ioctl(sockfd, SIOCGIFADDR, &ifr) == -1) {
+        perror("ioctl");
+        close(sockfd);
+        exit(1);
+    }
+    my_ip = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
+    memcpy(packet + 28, &my_ip, 4);      // Sender IP address (our IP)
+
+    memcpy(packet + 32, target_mac, 6);  // Target MAC address (unknown for ARP request)
     
     struct in_addr target_ip_addr;
     inet_aton(target_ip, &target_ip_addr);
-    memcpy(packet + 38, &target_ip_addr, 4);  // Target IP address
+    memcpy(packet + 38, &target_ip_addr, 4); // Target IP address
 
     // Send the packet
     memset(&sa, 0, sizeof(sa));
@@ -91,31 +101,22 @@ void send_arp_reply(const char *iface, const char *target_ip, const char *router
     if (sendto(sockfd, packet, PACKET_LEN, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("sendto");
     } else {
-        printf("Spoofed ARP reply sent to %s, claiming to be %s\n", target_ip, router_ip);
+        printf("ARP request sent for %s\n", target_ip);
     }
 
     close(sockfd);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <interface> <target_ip> <router_ip> <router_mac>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <interface> <target_ip>\n", argv[0]);
         exit(1);
     }
 
     const char *iface = argv[1];
     const char *target_ip = argv[2];
-    const char *router_ip = argv[3];
 
-    unsigned char router_mac[6];
-    if (sscanf(argv[4], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-               &router_mac[0], &router_mac[1], &router_mac[2],
-               &router_mac[3], &router_mac[4], &router_mac[5]) != 6) {
-        fprintf(stderr, "Invalid MAC address format\n");
-        exit(1);
-    }
-
-    send_arp_reply(iface, target_ip, router_ip, router_mac);
+    send_arp_request(iface, target_ip);
 
     return 0;
 }
