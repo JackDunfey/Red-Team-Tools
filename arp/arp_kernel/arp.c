@@ -25,11 +25,15 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
 
     eth = eth_hdr(skb);
     if (eth->h_proto != htons(ETH_P_ARP)) {
+        printk(KERN_INFO "\t\tNot ARP!\n");
         return NF_ACCEPT;  // Not an ARP packet, let it pass
     }
 
     arp = arp_hdr(skb);
     if (arp->ar_op == htons(ARPOP_REQUEST)) {
+
+        printk(KERN_INFO "It's an ARP!\n");
+
         // Create an ARP reply
         dev = dev_get_by_name(&init_net, "eth0");  // Replace "eth0" with your actual interface name
         if (!dev) {
