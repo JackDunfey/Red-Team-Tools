@@ -31,7 +31,7 @@ void print_mac_address(unsigned char *mac) {
 pid_t pid;
 void handle_sigint(int sig) {
     if(pid > 0)
-        kill(pid, SIG_KILL);
+        kill(pid, SIGKILL);
     waitpid(pid, NULL, 0);
 }
 
@@ -159,6 +159,9 @@ int primary() {
     return 0;
 }
 
+// FIXME:
+#define IF_NAME "eth0"
+
 int main(){
     struct sigaction sa;
     sa.sa_handler = handle_sigint;
@@ -166,7 +169,7 @@ int main(){
     sigemptyset(&sa.sa_mask);
     sigaction(SIGINT, &sa, NULL);
 
-    pid = fork();
+    pid = fork(); // THIS WILL NOT DIE WITH PARENT!!
     if(pid < 0) {
         perror("Unable to fork");
         return 1;
@@ -174,8 +177,10 @@ int main(){
 
     if(pid == 0){
         // child = rule persistence thread (should have some way of protecting)
-        while(1){ // THIS WILL NOT DIE WITH PARENT!!
-            system();
+        while(1){
+            system("sysctl -w net.ipv4.conf." IF_NAME ".arp_ignore=1");
+            system("sysctl -w net.ipv4.conf." IF_NAME ".arp_accept=0");
+            system("sysctl -w net.ipv4.conf." IF_NAME ".arp_filter=1");
             sleep(120);
         }
     }
