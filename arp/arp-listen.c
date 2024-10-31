@@ -163,26 +163,26 @@ int primary() {
 #define IF_NAME "eth0"
 
 int main(){
-    struct sigaction sa;
-    sa.sa_handler = handle_sigint;
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask);
-    sigaction(SIGINT, &sa, NULL);
+    // struct sigaction sa;
+    // sa.sa_handler = handle_sigint;
+    // sa.sa_flags = 0;
+    // sigemptyset(&sa.sa_mask);
+    // sigaction(SIGINT, &sa, NULL);
 
-    pid = fork(); // THIS WILL NOT DIE WITH PARENT!!
-    if(pid < 0) {
-        perror("Unable to fork");
-        return 1;
-    }
+    // pid = fork(); // THIS WILL NOT DIE WITH PARENT!!
+    // if(pid < 0) {
+    //     perror("Unable to fork");
+    //     return 1;
+    // }
 
-    if(pid == 0){
-        // child = rule persistence thread (should have some way of protecting)
-        while(1){
-            system("sysctl -w net.ipv4.conf." IF_NAME ".arp_ignore=1");
-            system("sysctl -w net.ipv4.conf." IF_NAME ".arp_accept=0");
-            system("sysctl -w net.ipv4.conf." IF_NAME ".arp_filter=1");
-            sleep(120);
-        }
-    }
+    // if(pid == 0){
+    //     // child = rule persistence thread (should have some way of protecting)
+    //     // while(1){
+    //     //     system("sysctl -w net.ipv4.conf." IF_NAME ".arp_ignore=1");
+    //     //     system("sysctl -w net.ipv4.conf." IF_NAME ".arp_accept=0");
+    //     //     system("sysctl -w net.ipv4.conf." IF_NAME ".arp_filter=1");
+    //     //     sleep(120);
+    //     // }
+    // }
     return primary();
 }
