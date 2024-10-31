@@ -3,23 +3,22 @@
 #include <string.h>
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
-#include <netinet/if_arp.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 
 #define BUF_SIZE 65536
-// struct arphdr {
-//     unsigned short hardware_type;   // Hardware type (e.g., Ethernet)
-//     unsigned short protocol_type;   // Protocol type (e.g., IP)
-//     unsigned char hardware_size;    // Hardware address length
-//     unsigned char protocol_size;    // Protocol address length
-//     unsigned short opcode;          // ARP opcode (request or reply)
-//     unsigned char sender_mac[6];    // Sender MAC address
-//     unsigned char sender_ip[4];     // Sender IP address
-//     unsigned char target_mac[6];    // Target MAC address
-//     unsigned char target_ip[4];     // Target IP address
-// };
+struct arp_header {
+    unsigned short hardware_type;   // Hardware type (e.g., Ethernet)
+    unsigned short protocol_type;   // Protocol type (e.g., IP)
+    unsigned char hardware_size;    // Hardware address length
+    unsigned char protocol_size;    // Protocol address length
+    unsigned short opcode;          // ARP opcode (request or reply)
+    unsigned char sender_mac[6];    // Sender MAC address
+    unsigned char sender_ip[4];     // Sender IP address
+    unsigned char target_mac[6];    // Target MAC address
+    unsigned char target_ip[4];     // Target IP address
+};
 
 // Function to print the MAC address
 void print_mac_address(unsigned char *mac) {
