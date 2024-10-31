@@ -15,6 +15,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: HostA
+    mac_address: "AA:BB:CC:DD:EE:05"
     networks:
       ArpNet:
         ipv4_address: 10.9.0.5
@@ -26,6 +27,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: HostB
+    mac_address: "AA:BB:CC:DD:EE:06"
     networks:
       ArpNet:
         ipv4_address: 10.9.0.6
