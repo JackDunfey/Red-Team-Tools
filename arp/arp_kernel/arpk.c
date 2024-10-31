@@ -27,7 +27,12 @@ static unsigned int hook_func(void *priv,
     struct ethhdr *eth = eth_hdr(skb);
     struct arphdr *arp;
 
+    printk(KERN_INFO "Ethernet!\n");
+
     if (ntohs(eth->h_proto) == ETH_P_ARP) {
+
+        printk(KERN_INFO "ARP!\n");
+
         arp = (struct arphdr *)(skb->data + sizeof(struct ethhdr));
 
         if (arp->ar_op == ntohs(ARPOP_REQUEST)) {
