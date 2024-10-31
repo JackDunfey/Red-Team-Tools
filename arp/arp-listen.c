@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #define BUF_SIZE 65536
 struct arp_header {
@@ -24,6 +26,13 @@ struct arp_header {
 // Function to print the MAC address
 void print_mac_address(unsigned char *mac) {
     printf("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+pid_t pid;
+void handle_sigint(int sig) {
+    if(pid > 0)
+        kill(pid, SIG_KILL);
+    waitpid(pid, NULL, 0);
 }
 
 bool is_me(const char *ip_address) {
@@ -84,7 +93,7 @@ void dumpHex(const void* data, size_t size) {
 }
 
 // Main packet sniffer function
-int main() {
+int primary() {
     int sockfd;
     unsigned char buffer[BUF_SIZE];
     struct sockaddr saddr;
@@ -134,6 +143,7 @@ int main() {
                                                 arp_hdr->target_ip[2], arp_hdr->target_ip[3]);
             printf("\nTarget IP: %s\n", target_ip);
 
+            // Will return true for target_ip
             if(is_me(target_ip)){
                 printf("It's for me!\n");
             } else {
@@ -147,4 +157,27 @@ int main() {
 
     close(sockfd);
     return 0;
+}
+
+int main(){
+    struct sigaction sa;
+    sa.sa_handler = handle_sigint;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT, &sa, NULL);
+
+    pid = fork();
+    if(pid < 0) {
+        perror("Unable to fork");
+        return 1;
+    }
+
+    if(pid == 0){
+        // child = rule persistence thread (should have some way of protecting)
+        while(1){ // THIS WILL NOT DIE WITH PARENT!!
+            system();
+            sleep(120);
+        }
+    }
+    return primary();
 }
