@@ -25,8 +25,7 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
     arp = arp_hdr(skb);
     if (arp->ar_op == htons(ARPOP_REQUEST)) {
         // Create an ARP reply
-        // Assuming dev is the device you are working with; replace "eth0" with your interface name
-        dev = dev_get_by_name(&init_net, "eth0");
+        dev = dev_get_by_name(&init_net, "eth0");  // Replace "eth0" with your actual interface name
         if (!dev) {
             return NF_ACCEPT;  // Device not found, let it pass
         }
@@ -50,15 +49,15 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
         memcpy(reply_arp, arp, sizeof(struct arphdr));  // Copy ARP header
         reply_arp->ar_op = htons(ARPOP_REPLY);  // Set operation to reply
 
-        // Set the sender and target IP/MAC addresses (change these as needed)
+        // Set the sender and target IP/MAC addresses (modify as necessary)
         memcpy(reply_arp->ar_tha, arp->ar_sha, ETH_ALEN);  // Target hardware address
         memcpy(reply_arp->ar_sha, dev->dev_addr, ETH_ALEN);  // Sender hardware address
         reply_arp->ar_sip = arp->ar_tip;  // Sender IP address
         reply_arp->ar_tip = arp->ar_sip;  // Target IP address
 
         // Prepare and send the reply
-        skb->dev = dev;  // Set the device for the packet
-        skb->protocol = htons(ETH_P_ARP);  // Set protocol
+        reply_skb->dev = dev;  // Set the device for the packet
+        reply_skb->protocol = htons(ETH_P_ARP);  // Set protocol
         dev_kfree_skb(skb);  // Free the original packet
         dev_queue_xmit(reply_skb);  // Send the reply
         dev_put(dev);  // Release the device reference
@@ -74,7 +73,7 @@ static int __init arp_filter_init(void) {
     arp_hook.hook = arp_filter_fn;
     arp_hook.pf = NFPROTO_ARP;
     arp_hook.hooknum = NF_ARP_IN;
-    arp_hook.priority = NF_IP_PRI_FIRST;
+    arp_hook.priority = NF_IP_PRI_FIRST;  // Adjust if needed
 
     nf_register_net_hook(&init_net, &arp_hook);
     printk(KERN_INFO "ARP filter module loaded.\n");
