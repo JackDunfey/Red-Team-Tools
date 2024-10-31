@@ -1,4 +1,4 @@
-all: arp sniff
+all: arp_router sniff
 
 arp_router: arp_router.c
 	gcc arp_router.c -o arp_router
