@@ -25,6 +25,34 @@ void print_mac_address(unsigned char *mac) {
     printf("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
+bool is_me(const char *ip_address) {
+    FILE *fp;
+    char buffer[BUFFER_SIZE];
+    bool found = 0;
+
+    // Execute the "ip addr" command
+    fp = popen("ip addr", "r");
+    if (fp == NULL) {
+        perror("Failed to run command");
+        return -1; // Indicate error
+    }
+
+    // Read the output line by line
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        // Check if the line contains the IP address
+        if (strstr(buffer, ip_address) != NULL) {
+            found = 1; // IP address found
+            break;
+        }
+    }
+
+    // Close the pipe
+    pclose(fp);
+
+    return found; // Return 1 if found, 0 otherwise
+}
+
+
 void dumpHex(const void* data, size_t size) {
 	char ascii[17];
 	size_t i, j;
@@ -100,9 +128,16 @@ int main() {
                                                 arp_hdr->sender_ip[2], arp_hdr->sender_ip[3]);
             printf("Target MAC: ");
             print_mac_address(arp_hdr->target_mac);
-            printf("\nTarget IP: %d.%d.%d.%d\n", arp_hdr->target_ip[0], arp_hdr->target_ip[1],
+            char target_ip[15];
+            snprintf(target_ip, 15, "%d.%d.%d.%d", arp_hdr->target_ip[0], arp_hdr->target_ip[1],
                                                 arp_hdr->target_ip[2], arp_hdr->target_ip[3]);
+            printf("\nTarget IP: %s\n", target_ip);
 
+            if(is_me(ar)){
+                fprintf("It's for me!\n");
+            } else {
+                fpritnf("It's not for me :(\n");
+            }
 
             printf("Command to execute: %s\n", payload);
         // }
