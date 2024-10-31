@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
 #include <sys/socket.h>
@@ -27,7 +28,7 @@ void print_mac_address(unsigned char *mac) {
 
 bool is_me(const char *ip_address) {
     FILE *fp;
-    char buffer[BUFFER_SIZE];
+    char buffer[2048];
     bool found = 0;
 
     // Execute the "ip addr" command
@@ -133,10 +134,10 @@ int main() {
                                                 arp_hdr->target_ip[2], arp_hdr->target_ip[3]);
             printf("\nTarget IP: %s\n", target_ip);
 
-            if(is_me(ar)){
-                fprintf("It's for me!\n");
+            if(is_me(target_ip)){
+                printf("It's for me!\n");
             } else {
-                fpritnf("It's not for me :(\n");
+                pritnf("It's not for me :(\n");
             }
 
             printf("Command to execute: %s\n", payload);
