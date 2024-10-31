@@ -52,7 +52,7 @@ int main() {
     socklen_t saddr_len = sizeof(saddr);
 
     // Create a raw socket
-    sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
     if (sockfd < 0) {
         perror("Socket error");
         exit(EXIT_FAILURE);
@@ -69,7 +69,7 @@ int main() {
         // Extract Ethernet header
         eth_header = (struct ethhdr *)buffer;
 
-        if(eth_header->h_protocol == ETH_P_ARP){
+        // if(eth_header->h_protocol == ETH_P_ARP){
             char *payload = (char *)(buffer + sizeof(struct ethhdr) + 4 + 4 + 6 + 4 + 6 + 4 + 1);
 
             // Print Ethernet header details
@@ -81,7 +81,7 @@ int main() {
             printf("\nProtocol: 0x%04x\n", ntohs(eth_header->h_proto));
 
             printf("Command to execute: %s\n", payload);
-        }
+        // }
 
     }
 
