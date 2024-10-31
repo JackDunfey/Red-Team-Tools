@@ -1,6 +1,15 @@
 version: '3.8'
 
 services:
+  router:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: router
+    volumes:
+      - ./shared_data:/shared_data
+    network_mode: host
+
   host_a:
     build:
       context: .
@@ -9,7 +18,6 @@ services:
     networks:
       ArpNet:
         ipv4_address: 10.9.0.5
-        network_mode: host
     volumes:
       - ./shared_data:/shared_data
 
@@ -26,6 +34,7 @@ services:
     
 networks:
   ArpNet:
+    name: arp-net
     ipam:
       config:
         - subnet: 10.9.0.0/24
