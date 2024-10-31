@@ -37,7 +37,7 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
         // Create an ARP reply
         dev = dev_get_by_name(&init_net, "eth0");  // Replace "eth0" with your actual interface name
         if (!dev) {
-            printk(KERN_WARN "Device not found :(\n");
+            printk(KERN_ERR "Device not found :(\n");
             return NF_ACCEPT;  // Device not found, let it pass
         }
 
