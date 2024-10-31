@@ -1,5 +1,5 @@
 # Makefile for building a simple kernel module
-obj-m += arp_filter.o  # Replace arp_filter with the name of your module file without the .c extension
+obj-m += arpk.o  # Replace arp_filter with the name of your module file without the .c extension
 
 # Path to the kernel build directory
 KDIR := /lib/modules/$(shell uname -r)/build
