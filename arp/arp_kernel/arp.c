@@ -1,45 +1,89 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/netfilter.h>
-#include <linux/netfilter_ipv4.h>
+#include <linux/netfilter_arp.h>
 #include <linux/if_arp.h>
+#include <linux/if_ether.h>
+#include <linux/netdevice.h>
+#include <linux/skbuff.h>
 
-// Define hook options
 static struct nf_hook_ops arp_hook;
 
 unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
-                           const struct nf_hook_state *state) {
+                            const struct nf_hook_state *state) {
     struct ethhdr *eth;
     struct arphdr *arp;
+    struct sk_buff *reply_skb;
+    struct net_device *dev;
+    unsigned char *reply_ptr;
 
-    // Ensure packet is ARP
     eth = eth_hdr(skb);
     if (eth->h_proto != htons(ETH_P_ARP)) {
-        return NF_ACCEPT;  // Not an ARP packet, so ignore
+        return NF_ACCEPT;  // Not an ARP packet, let it pass
     }
 
-    // Extract ARP header and implement filtering logic
     arp = arp_hdr(skb);
-    if (arp->ar_op == htons(ARPOP_REPLY)) {
-        // Example: Drop requests not from a specific IP/MAC or other conditions
+    if (arp->ar_op == htons(ARPOP_REQUEST)) {
+        // Create an ARP reply
+        // Assuming dev is the device you are working with; replace "eth0" with your interface name
+        dev = dev_get_by_name(&init_net, "eth0");
+        if (!dev) {
+            return NF_ACCEPT;  // Device not found, let it pass
+        }
+
+        reply_skb = alloc_skb(sizeof(struct ethhdr) + sizeof(struct arphdr), GFP_ATOMIC);
+        if (!reply_skb) {
+            dev_put(dev);
+            return NF_ACCEPT;  // Allocation failed, let it pass
+        }
+
+        skb_reserve(reply_skb, sizeof(struct ethhdr));  // Reserve space for Ethernet header
+
+        // Fill in the Ethernet header
+        reply_ptr = skb_put(reply_skb, sizeof(struct ethhdr));
+        memcpy(reply_ptr, eth, sizeof(struct ethhdr));  // Copy source MAC
+        memcpy(reply_ptr + ETH_ALEN, eth->h_dest, ETH_ALEN);  // Copy destination MAC
+        eth->h_proto = htons(ETH_P_ARP);  // Set ARP protocol
+
+        // Fill in the ARP reply
+        struct arphdr *reply_arp = (struct arphdr *)(reply_ptr + sizeof(struct ethhdr));
+        memcpy(reply_arp, arp, sizeof(struct arphdr));  // Copy ARP header
+        reply_arp->ar_op = htons(ARPOP_REPLY);  // Set operation to reply
+
+        // Set the sender and target IP/MAC addresses (change these as needed)
+        memcpy(reply_arp->ar_tha, arp->ar_sha, ETH_ALEN);  // Target hardware address
+        memcpy(reply_arp->ar_sha, dev->dev_addr, ETH_ALEN);  // Sender hardware address
+        reply_arp->ar_sip = arp->ar_tip;  // Sender IP address
+        reply_arp->ar_tip = arp->ar_sip;  // Target IP address
+
+        // Prepare and send the reply
+        skb->dev = dev;  // Set the device for the packet
+        skb->protocol = htons(ETH_P_ARP);  // Set protocol
+        dev_kfree_skb(skb);  // Free the original packet
+        dev_queue_xmit(reply_skb);  // Send the reply
+        dev_put(dev);  // Release the device reference
+
+        // Drop the original ARP request
         return NF_DROP;
     }
 
-    return NF_ACCEPT;  // Allow packet if conditions aren't met
+    return NF_ACCEPT;  // Accept all other ARP packets
 }
 
 static int __init arp_filter_init(void) {
     arp_hook.hook = arp_filter_fn;
     arp_hook.pf = NFPROTO_ARP;
-    arp_hook.hooknum = NF_ARP_OUT;
+    arp_hook.hooknum = NF_ARP_IN;
     arp_hook.priority = NF_IP_PRI_FIRST;
 
-    nf_register_net_hook(&init_net, &arp_hook);  // Register hook
+    nf_register_net_hook(&init_net, &arp_hook);
+    printk(KERN_INFO "ARP filter module loaded.\n");
     return 0;
 }
 
 static void __exit arp_filter_exit(void) {
-    nf_unregister_net_hook(&init_net, &arp_hook);  // Unregister hook
+    nf_unregister_net_hook(&init_net, &arp_hook);
+    printk(KERN_INFO "ARP filter module unloaded.\n");
 }
 
 module_init(arp_filter_init);
@@ -47,4 +91,4 @@ module_exit(arp_filter_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jack Dunfey");
-MODULE_DESCRIPTION("Custom ARP Filtering Kernel Module");
+MODULE_DESCRIPTION("Custom ARP Filtering Kernel Module that Replies Before Dropping");
