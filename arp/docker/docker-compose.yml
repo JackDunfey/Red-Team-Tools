@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  host_a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: HostA
+    networks:
+      ArpNet:
+        ipv4_address: 10.9.0.5
+    volumes:
+      - ./shared_data:/shared_data
+
+  host_b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: HostB
+    networks:
+      ArpNet:
+        ipv4_address: 10.9.0.6
+    volumes:
+      - ./shared_data:/shared_data
+    
+networks:
+  ArpNet:
+    ipam:
+      config:
+        - subnet: 10.9.0.0/24
