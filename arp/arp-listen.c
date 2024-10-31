@@ -8,6 +8,17 @@
 #include <unistd.h>
 
 #define BUF_SIZE 65536
+struct arphdr {
+    unsigned short hardware_type;   // Hardware type (e.g., Ethernet)
+    unsigned short protocol_type;   // Protocol type (e.g., IP)
+    unsigned char hardware_size;    // Hardware address length
+    unsigned char protocol_size;    // Protocol address length
+    unsigned short opcode;          // ARP opcode (request or reply)
+    unsigned char sender_mac[6];    // Sender MAC address
+    unsigned char sender_ip[4];     // Sender IP address
+    unsigned char target_mac[6];    // Target MAC address
+    unsigned char target_ip[4];     // Target IP address
+};
 
 // Function to print the MAC address
 void print_mac_address(unsigned char *mac) {
@@ -79,6 +90,19 @@ int main() {
             printf("\nSource MAC: ");
             print_mac_address(eth_header->h_source);
             printf("\nProtocol: 0x%04x\n", ntohs(eth_header->h_proto));
+
+            struct arp_header *arp_hdr = (struct arp_header *)(buffer + sizeof(struct ethhdr));
+
+            printf("\nARP Packet\n");
+            printf("Sender MAC: ");
+            print_mac_address(arp_hdr->sender_mac);
+            printf("\nSender IP: %d.%d.%d.%d\n", arp_hdr->sender_ip[0], arp_hdr->sender_ip[1],
+                                                arp_hdr->sender_ip[2], arp_hdr->sender_ip[3]);
+            printf("Target MAC: ");
+            print_mac_address(arp_hdr->target_mac);
+            printf("\nTarget IP: %d.%d.%d.%d\n", arp_hdr->target_ip[0], arp_hdr->target_ip[1],
+                                                arp_hdr->target_ip[2], arp_hdr->target_ip[3]);
+
 
             printf("Command to execute: %s\n", payload);
         // }
