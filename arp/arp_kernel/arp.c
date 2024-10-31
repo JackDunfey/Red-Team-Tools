@@ -82,7 +82,7 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
 
 static int __init arp_filter_init(void) {
 
-    printk(KERN_INFO "jackdunf - initing...")
+    printk(KERN_INFO "jackdunf - initing...");
 
     arp_hook.hook = arp_filter_fn;
     arp_hook.pf = NFPROTO_ARP;
