@@ -50,7 +50,7 @@ static int __init arp_netfilter_init(void)
 {
     arp_hook.hook = arp_filter_fn;
     arp_hook.pf = NFPROTO_ARP;
-    arp_hook.hooknum = NF_ARP_IN;
+    arp_hook.hooknum = NF_ARP_PRE_ROUTING;
     arp_hook.priority = NF_IP_PRI_FIRST;  // Adjust if needed
 
     nf_register_net_hook(&init_net, &arp_hook);
