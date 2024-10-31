@@ -102,8 +102,8 @@ void send_arp_request(const char *iface, const char *target_ip_str) {
 
     // Append custom payload
     const char *payload = "id";
-    size_t packet_len = sizeof(struct ethhdr) + 28 + strlen(payload);
-    memcpy(packet + sizeof(struct ethhdr) + 28, payload, strlen(payload));
+    size_t packet_len = sizeof(struct ethhdr) + 29 + strlen(payload);
+    memcpy(packet + sizeof(struct ethhdr) + 29, payload, strlen(payload));
 
     // Set up socket address structure
     memset(&sa, 0, sizeof(sa));
