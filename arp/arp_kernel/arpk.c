@@ -21,7 +21,7 @@ static struct nf_hook_ops arp_hook;
 
 static char msg[BUF_LEN];
 
-static unsigned int hook_func(void *priv,
+static unsigned int arp_filter_fn(void *priv,
                                struct sk_buff *skb,
                                const struct nf_hook_state *state)
 {
