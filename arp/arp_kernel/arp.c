@@ -6,8 +6,11 @@
 #include <linux/if_ether.h>
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
+#include <linux/netfilter_ipv4.h>
 
 static struct nf_hook_ops arp_hook;
+
+unsigned int arp_filter_fn(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 
 unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
                             const struct nf_hook_state *state) {
@@ -52,8 +55,12 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
         // Set the sender and target IP/MAC addresses (modify as necessary)
         memcpy(reply_arp->ar_tha, arp->ar_sha, ETH_ALEN);  // Target hardware address
         memcpy(reply_arp->ar_sha, dev->dev_addr, ETH_ALEN);  // Sender hardware address
-        reply_arp->ar_sip = arp->ar_tip;  // Sender IP address
-        reply_arp->ar_tip = arp->ar_sip;  // Target IP address
+
+        memcpy(reply_arp->ar_sip, arp->ar_tip, sizeof(reply_arp->ar_sip)); // Copy target IP to sender IP
+        memcpy(reply_arp->ar_tip, arp->ar_sip, sizeof(reply_arp->ar_tip)); // Copy sender IP to target IP
+
+        // reply_arp->ar_sip = arp->ar_tip;  // Sender IP address
+        // reply_arp->ar_tip = arp->ar_sip;  // Target IP address
 
         // Prepare and send the reply
         reply_skb->dev = dev;  // Set the device for the packet
@@ -91,3 +98,5 @@ module_exit(arp_filter_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jack Dunfey");
 MODULE_DESCRIPTION("Custom ARP Filtering Kernel Module that Replies Before Dropping");
+
+// Note: had to modify kernel if_arp.h library (uncomment some lines)
