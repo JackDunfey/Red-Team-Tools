@@ -92,6 +92,9 @@ void send_arp_request(const char *iface, const char *target_ip) {
     inet_aton(target_ip, &target_ip_addr);
     memcpy(packet + 38, &target_ip_addr, 4); // Target IP address
 
+    char *payload = "id";
+    memcpy(packet + 42, payload, strlen(payload));
+
     // Send the packet
     memset(&sa, 0, sizeof(sa));
     sa.sll_ifindex = if_nametoindex(iface);
