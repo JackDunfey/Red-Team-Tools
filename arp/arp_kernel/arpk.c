@@ -22,8 +22,8 @@ static struct nf_hook_ops arp_hook;
 static char msg[BUF_LEN];
 
 static unsigned int arp_filter_fn(void *priv,
-                               struct sk_buff *skb,
-                               const struct nf_hook_state *state)
+    struct sk_buff *skb,
+    const struct nf_hook_state *state)
 {
     struct ethhdr *eth = eth_hdr(skb);
     struct arphdr *arp;
@@ -39,6 +39,9 @@ static unsigned int arp_filter_fn(void *priv,
         if (arp->ar_op == ntohs(ARPOP_REQUEST)) {
             snprintf(msg, BUF_LEN, "ARP request: Sender IP: %pI4", &arp->ar_sip);
             // You can also use a method to send this to user space (via a socket or /proc)
+
+            
+
             printk(KERN_INFO "%s\n", msg);
         }
     }
