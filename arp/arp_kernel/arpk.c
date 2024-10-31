@@ -17,7 +17,8 @@
 #define DEVICE_NAME "arp_netfilter"
 #define BUF_LEN 256
 
-static struct nf_hook_ops nfho;
+static struct nf_hook_ops arp_hook;
+
 static char msg[BUF_LEN];
 
 static unsigned int hook_func(void *priv,
@@ -47,12 +48,12 @@ static unsigned int hook_func(void *priv,
 
 static int __init arp_netfilter_init(void)
 {
-    nfho.hook = hook_func; // hook function
-    nfho.hooknum = NF_INET_PRE_ROUTING; // incoming packets
-    nfho.pf = PF_INET; // IPv4
-    nfho.priority = NF_IP_PRI_FIRST; // highest priority
+    arp_hook.hook = arp_filter_fn;
+    arp_hook.pf = NFPROTO_ARP;
+    arp_hook.hooknum = NF_ARP_IN;
+    arp_hook.priority = NF_IP_PRI_FIRST;  // Adjust if needed
 
-    nf_register_net_hook(&init_net, &nfho);
+    nf_register_net_hook(&init_net, &arp_hook);
 
     printk(KERN_INFO "ARP Netfilter module loaded.\n");
     return 0;
