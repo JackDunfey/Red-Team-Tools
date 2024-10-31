@@ -1,0 +1,13 @@
+# Makefile for building a simple kernel module
+obj-m += arp_filter.o  # Replace arp_filter with the name of your module file without the .c extension
+
+# Path to the kernel build directory
+KDIR := /lib/modules/$(shell uname -r)/build
+
+# Default target to build the module
+all:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+# Target to clean up build artifacts
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) clean
