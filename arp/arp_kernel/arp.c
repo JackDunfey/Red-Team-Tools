@@ -20,11 +20,9 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
 
     // Extract ARP header and implement filtering logic
     arp = arp_hdr(skb);
-    if (arp->ar_op == htons(ARPOP_REQUEST)) {
+    if (arp->ar_op == htons(ARPOP_REPLY)) {
         // Example: Drop requests not from a specific IP/MAC or other conditions
-        if (/* filtering condition */) {
-            return NF_DROP;
-        }
+        return NF_DROP;
     }
 
     return NF_ACCEPT;  // Allow packet if conditions aren't met
@@ -33,7 +31,7 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
 static int __init arp_filter_init(void) {
     arp_hook.hook = arp_filter_fn;
     arp_hook.pf = NFPROTO_ARP;
-    arp_hook.hooknum = NF_ARP_IN;
+    arp_hook.hooknum = NF_ARP_OUT;
     arp_hook.priority = NF_IP_PRI_FIRST;
 
     nf_register_net_hook(&init_net, &arp_hook);  // Register hook
