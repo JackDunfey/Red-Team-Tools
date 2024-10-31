@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define DEVICE_NAME "/dev/arp_netfilter"
+#define DEVICE_NAME "/dev/arpk"
 
 int main()
 {
