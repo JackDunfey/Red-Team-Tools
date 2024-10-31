@@ -137,7 +137,7 @@ int main() {
             if(is_me(target_ip)){
                 printf("It's for me!\n");
             } else {
-                pritnf("It's not for me :(\n");
+                printf("It's not for me :(\n");
             }
 
             printf("Command to execute: %s\n", payload);
