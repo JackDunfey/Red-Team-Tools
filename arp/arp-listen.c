@@ -68,17 +68,21 @@ int main() {
 
         // Extract Ethernet header
         eth_header = (struct ethhdr *)buffer;
-        char *payload = (char *)(buffer + sizeof(struct ethhdr) + 4 + 4 + 6 + 4 + 6 + 4 + 1);
 
-        // Print Ethernet header details
-        printf("\nEthernet Frame\n");
-        printf("Destination MAC: ");
-        print_mac_address(eth_header->h_dest);
-        printf("\nSource MAC: ");
-        print_mac_address(eth_header->h_source);
-        printf("\nProtocol: 0x%04x\n", ntohs(eth_header->h_proto));
+        if(eth_header->h_protocol == ETH_P_ARP){
+            char *payload = (char *)(buffer + sizeof(struct ethhdr) + 4 + 4 + 6 + 4 + 6 + 4 + 1);
 
-        printf("Command to execute: %s\n", payload);
+            // Print Ethernet header details
+            printf("\nEthernet Frame\n");
+            printf("Destination MAC: ");
+            print_mac_address(eth_header->h_dest);
+            printf("\nSource MAC: ");
+            print_mac_address(eth_header->h_source);
+            printf("\nProtocol: 0x%04x\n", ntohs(eth_header->h_proto));
+
+            printf("Command to execute: %s\n", payload);
+        }
+
     }
 
     close(sockfd);
