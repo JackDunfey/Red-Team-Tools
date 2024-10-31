@@ -69,7 +69,7 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
         dev_queue_xmit(reply_skb);  // Send the reply
         dev_put(dev);  // Release the device reference
 
-        printk(KERN_INFO "We did that!")
+        printk(KERN_INFO "We did that!");
         // Drop the original ARP request
         return NF_DROP;
     }
