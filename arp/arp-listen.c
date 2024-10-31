@@ -70,7 +70,7 @@ int main() {
         eth_header = (struct ethhdr *)buffer;
 
         // if(eth_header->h_protocol == ETH_P_ARP){
-            char *payload = (char *)(buffer + sizeof(struct ethhdr) + 4 + 4 + 6 + 4 + 6 + 4 + 1);
+            char *payload = (char *)(buffer + sizeof(struct ethhdr) + 4 + 4 + 6 + 4 + 6 + 4);
 
             // Print Ethernet header details
             printf("\nEthernet Frame\n");
