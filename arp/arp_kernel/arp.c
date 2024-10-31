@@ -14,6 +14,9 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb, const struct nf_hook
 
 unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
                             const struct nf_hook_state *state) {
+    
+    printk(KERN_INFO "At least the function started!\n");
+
     struct ethhdr *eth;
     struct arphdr *arp;
     struct sk_buff *reply_skb;
@@ -69,7 +72,7 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
         dev_queue_xmit(reply_skb);  // Send the reply
         dev_put(dev);  // Release the device reference
 
-        printk(KERN_INFO "We did that!");
+        printk(KERN_INFO "We did that!\n");
         // Drop the original ARP request
         return NF_DROP;
     }
@@ -78,6 +81,9 @@ unsigned int arp_filter_fn(void *priv, struct sk_buff *skb,
 }
 
 static int __init arp_filter_init(void) {
+
+    printk(KERN_INFO "jackdunf - initing...")
+
     arp_hook.hook = arp_filter_fn;
     arp_hook.pf = NFPROTO_ARP;
     arp_hook.hooknum = NF_ARP_IN;
