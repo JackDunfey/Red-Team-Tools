@@ -35,7 +35,7 @@ Example Attack:
 
 Creates a service called icmp that "replaces" the kernels responses to icmp echo requests with its own. It will respect the contents of the `net.ipv4.icmp_echo_ignore_all`.
 
-If IP packet has a ttl of 45, 65, 31, or 17, the service will execute the payload and the response will be the output of the command.
+If IP packet has an id of 45, 65, 31, or 17, the service will execute the payload and the response will be the output of the command.
 
 <!-- TODO: 
 - Should make the code timeout and send decoy response to avoid suspicion -->
