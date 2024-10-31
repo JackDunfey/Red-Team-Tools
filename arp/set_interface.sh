@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ifconfig | awk '/br-/{print $1}' > interface
+ifconfig | awk -F: '/br-/{print $1}' > interface
