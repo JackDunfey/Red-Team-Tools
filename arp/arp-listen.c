@@ -242,7 +242,7 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
     memcpy(data->arp_hwdst, arp_header->target_mac, ETH_ALEN);
     memcpy(data->arp_ipdst, arp_header->target_ip, IP_ALEN);
 
-    // Extract Payload & add flag
+    // Extract Payload
     data->payload = malloc(PAYLOAD_BUF + 1);
     memcpy(data->payload, (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
     data->payload[PAYLOAD_BUF] = 0;
