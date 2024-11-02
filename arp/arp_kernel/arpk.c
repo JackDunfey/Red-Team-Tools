@@ -34,6 +34,7 @@ static struct nf_hook_ops arp_filter_ops = {
 };
 
 static int __init arp_filter_init(void) {
+    printk(KERN_INFO "ARPk registering hook...\n");
     nf_register_net_hook(&init_net, &arp_filter_ops);
     printk(KERN_INFO "ARP filter module loaded\n");
     return 0;
