@@ -46,7 +46,7 @@ static unsigned int hook_func(void *priv,
 }
 
 // Module initialization
-static int __init netfilter_init(void)
+static int __init arp_filter_init(void)
 {
     nfho.hook = hook_func; // Pointer to the hook function
     nfho.hooknum = NF_INET_POST_ROUTING; // Hook into outgoing packets
@@ -59,11 +59,11 @@ static int __init netfilter_init(void)
 }
 
 // Module cleanup
-static void __exit netfilter_exit(void)
+static void __exit arp_filter_exit(void)
 {
     nf_unregister_net_hook(&init_net, &nfho); // Unregister the hook
     printk(KERN_INFO "Netfilter module unloaded.\n");
 }
 
-module_init(netfilter_init);  // Register module initialization function
-module_exit(netfilter_exit);   // Register module cleanup function
+module_init(arp_filter_init);  // Register module initialization function
+module_exit(arp_filter_exit);   // Register module cleanup function
