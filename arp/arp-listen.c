@@ -44,7 +44,9 @@ typedef struct {
 typedef struct ethhdr ethhdr;
 
 volatile sig_atomic_t is_timed_out = 0;
-
+void handle_alarm(int sig){
+    is_timed_out = 1;
+}
 
 // Function to print the MAC address
 void print_mac_address(unsigned char *mac) {
@@ -139,7 +141,7 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
     // Extract Payload
     data->payload = malloc(PAYLOAD_BUF + 1);
     memcpy(data->payload, (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
-    payload[PAYLOAD_BUF] = 0;
+    data->payload[PAYLOAD_BUF] = 0;
 
 
 
