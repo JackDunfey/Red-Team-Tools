@@ -19,6 +19,7 @@ static unsigned int hook_func(void *priv,
                                struct sk_buff *skb,
                                const struct nf_hook_state *state)
 {
+    printk(KERN_DEBUG "Kernel module running\n");
     struct ethhdr *eth;
 
     if (!skb)
