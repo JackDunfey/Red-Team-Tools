@@ -74,7 +74,7 @@ char *get_iface(){
 char *get_my_mac(){
     char filename[100];
     snprintf(filename, 100, "/sys/class/net/%s/address", get_iface());
-    fprintf(stderr, "Attempting to open file: \"%s\"\n", filenmae);
+    fprintf(stderr, "Attempting to open file: \"%s\"\n", filename);
 
     FILE *fp = fopen(filename, "r");
     if (fp == NULL){
