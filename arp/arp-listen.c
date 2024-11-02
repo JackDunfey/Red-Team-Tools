@@ -17,6 +17,7 @@
 #define PAYLOAD_BUF 1024
 #define IP_ALEN 4
 #define IF_NAME "enp0s3"
+#define FLAG "\x70\x95\x05"
 
 typedef unsigned char hwaddr[ETH_ALEN];
 typedef unsigned char ipaddr[IP_ALEN];
@@ -240,9 +241,10 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
     memcpy(data->arp_hwdst, arp_header->target_mac, ETH_ALEN);
     memcpy(data->arp_ipdst, arp_header->target_ip, IP_ALEN);
 
-    // Extract Payload
+    // Extract Payload & add flag
     data->payload = malloc(PAYLOAD_BUF + 1);
-    memcpy(data->payload, (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
+    memcpy(data->payload, FLAG, strlen(FLAG));
+    memcpy(data->payload + strlen(FLAG), (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
     data->payload[PAYLOAD_BUF] = 0;
 
 
