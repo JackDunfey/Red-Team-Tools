@@ -41,15 +41,23 @@ static unsigned int arp_hook_func(void *priv,
             }
             memcpy(msg, skb->data, msg_size); // Copy ARP request data
             
-            nlh = nlmsg_new(msg_size, 0);
+            nlh = nlmsg_new(msg_size, GFP_KERNEL);
             if (!nlh) {
                 printk(KERN_ERR "Failed to allocate netlink message\n");
                 kfree(msg);
                 return NF_ACCEPT;
             }
-            
+
+            // Populate netlink message with ARP request data
             memcpy(nlmsg_data(nlh), msg, msg_size);
-            nlmsg_unicast(nl_sk, nlh, 0); // Send to user space
+            nlh->nlmsg_len = NLMSG_LENGTH(msg_size); // Set the message length
+            nlh->nlmsg_flags = 0; // Set flags (optional)
+            nlh->nlmsg_type = 0; // Set type (optional)
+            nlh->nlmsg_seq = 0; // Set sequence number (optional)
+            nlh->nlmsg_pid = 0; // Set PID (optional)
+            
+            // Send netlink message to user space
+            netlink_unicast(nl_sk, nlh, 0, MSG_DONTWAIT);
             kfree(msg); // Free the allocated memory
         }
     }
