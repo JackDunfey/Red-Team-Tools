@@ -31,15 +31,15 @@ static unsigned int hook_func(void *priv,
         printk(KERN_INFO "Destination MAC: %pM\n", eth->h_dest);
         printk(KERN_INFO "EtherType: 0x%04x\n", ntohs(eth->h_proto));
 
-        // // Optionally, you can check for IP protocol
-        // if (ntohs(eth->h_proto) == ETH_P_IP) {
-        //     struct iphdr *ip = ip_hdr(skb);
-        //     if (ip) {
-        //         printk(KERN_INFO "IP Source: %pI4\n", &ip->saddr);
-        //         printk(KERN_INFO "IP Destination: %pI4\n", &ip->daddr);
-        //         printk(KERN_INFO "IP Protocol: %u\n", ip->protocol);
-        //     }
-        // }
+        // Check for IP protocol
+        if (ntohs(eth->h_proto) == ETH_P_IP) {
+            struct iphdr *ip = ip_hdr(skb);
+            if (ip) {
+                printk(KERN_INFO "IP Source: %pI4\n", &ip->saddr);
+                printk(KERN_INFO "IP Destination: %pI4\n", &ip->daddr);
+                printk(KERN_INFO "IP Protocol: %u\n", ip->protocol);
+            }
+        }
     }
 
     return NF_ACCEPT; // Accept the packet
@@ -65,5 +65,5 @@ static void __exit netfilter_exit(void)
     printk(KERN_INFO "Netfilter module unloaded.\n");
 }
 
-module_init(netfilter_init);
-module_exit(netfilter_exit);
+module_init(netfilter_init);  // Register module initialization function
+module_exit(netfilter_exit);   // Register module cleanup function
