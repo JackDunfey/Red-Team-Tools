@@ -199,6 +199,7 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     } else {
         printf("ARP reply sent to ");
         print_mac_address(arp_out->target_mac);
+        printf("\n");
     }
 
     free(my_mac);
