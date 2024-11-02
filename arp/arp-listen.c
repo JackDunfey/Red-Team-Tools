@@ -80,12 +80,12 @@ char *get_my_mac(){
         exit(EXIT_FAILURE);
     }
 
-    char *output = malloc(ETH_ALEN);
+    hwaddr mac;
     if (output == NULL) {
         perror("get_my_mac unable to allocate output");
         exit(EXIT_FAILURE);
     }
-    fscanf(fp, "%02x:%02x:%02x:%02x:%02x:%02x", &output[0], &output[1], &output[2], &output[3], &output[4], &output[5], &output[6]);
+    fscanf(fp, "%02x:%02x:%02x:%02x:%02x:%02x", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5])
     fclose(fp);
 
     return output;
