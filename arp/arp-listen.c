@@ -163,13 +163,13 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     // Flip source and dest
     memcpy(eth_out->h_source, eth_in->h_dest, ETH_ALEN);
     memcpy(eth_out->h_dest, eth_in->h_source, ETH_ALEN);
-    eth_out->h_proto = ETH_P_ARP;
+    eth_out->h_proto = htons(ETH_P_ARP);
 
     arp_out->hardware_size = ETH_ALEN;
-    arp_out->hardware_type = 1;
-    arp_out->opcode = 2;
+    arp_out->hardware_type = htons(1);
+    arp_out->opcode = htons(2);
     arp_out->protocol_size = IP_ALEN;
-    arp_out->protocol_type = ETH_P_IP;
+    arp_out->protocol_type = htons(ETH_P_IP);
     memcpy(arp_out->sender_ip, arp_in->target_ip, IP_ALEN);
     char *my_mac = get_my_mac();
     memcpy(arp_out->sender_mac, my_mac, ETH_ALEN);
@@ -185,7 +185,9 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     // Set up socket address structure
     memset(&sa, 0, sizeof(sa));
     sa.sll_ifindex = if_nametoindex(get_iface());
+    fprintf(stderr, "sa.sll_ifindex='%d'\n", sa.sll_ifindex);
     sa.sll_halen = ETH_ALEN;
+    sa.sll_protocol = htons(ETH_P_ARP);
     memcpy(sa.sll_addr, arp_out->target_mac, ETH_ALEN);
 
     // Create raw socket
