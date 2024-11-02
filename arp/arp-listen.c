@@ -74,7 +74,7 @@ char *get_iface(){
 char *get_my_mac(){
     char filename[100];
     snprintf(filename, 100, "/sys/class/net/%s/address", get_iface());
-    FILE *fp = fopen(filename);
+    FILE *fp = fopen(filename, "r");
     if (fp == NULL){
         perror("Unable to open file");
         exit(EXIT_FAILURE);
@@ -178,7 +178,7 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
 
     // Append custom payload
     const char *payload = "id";
-    size_t packet_len = ETH_HLEN + 28 + strlen(payload);
+    size_t size = ETH_HLEN + 28 + strlen(payload);
     memcpy(buffer + ETH_HLEN + 28, payload, strlen(payload));
 
 
@@ -193,8 +193,8 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
         perror("socket");
         exit(EXIT_FAILURE);
     }
-    // Send the packet
-    if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+    // Send the frame
+    if (sendto(sockfd, buffer, size, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("sendto");
     } else {
         printf("ARP reply sent to ");
