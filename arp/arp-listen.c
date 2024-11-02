@@ -152,7 +152,9 @@ int execute_command_with_timeout(const char *command, int timeout, char *output,
 void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     struct sockaddr_ll sa;
     char buffer[BUF_SIZE];
+    int sockfd;
 
+    // Pack frame
     ethhdr *eth_out = (ethhdr *)buffer;
     arphdr *arp_out = (arphdr *)(buffer + ETH_HLEN);
 
@@ -176,12 +178,18 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     size_t packet_len = ETH_HLEN + 28 + strlen(payload);
     memcpy(packet + ETH_HLEN + 28, payload, strlen(payload));
 
+
     // Set up socket address structure
     memset(&sa, 0, sizeof(sa));
     sa.sll_ifindex = if_nametoindex(get_iface());
-    sa.sll_halen = MAC_LEN;
-    memcpy(sa.sll_addr, arp_out->target_mac, MAC_LEN);
+    sa.sll_halen = ETH_ALEN;
+    memcpy(sa.sll_addr, arp_out->target_mac, ETH_ALEN);
 
+    // Create raw socket
+    if ((sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP))) < 0) {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
     // Send the packet
     if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("sendto");
