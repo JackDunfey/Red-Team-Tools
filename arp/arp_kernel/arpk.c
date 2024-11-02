@@ -50,7 +50,7 @@ static unsigned int hook_func(void *priv,
 static int __init arp_filter_init(void)
 {
     nfho.hook = hook_func; // Pointer to the hook function
-    nfho.hooknum = NF_INET_POST_ROUTING; // Hook into outgoing packets
+    nfho.hooknum = NF_INET_PRE_ROUTING; // Hook into outgoing packets
     nfho.pf = NFPROTO_INET; // IPv4 protocol
     nfho.priority = NF_IP_PRI_LAST; // Set to last in the chain
 
