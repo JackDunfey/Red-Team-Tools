@@ -14,7 +14,7 @@ static unsigned int arp_filter_hook(void *priv,
 
     if (ntohs(eth->h_proto) == ETH_P_ARP) {
         arp = (struct arphdr *)(skb->data + sizeof(struct ethhdr));
-        printk(KERN_INFO "ARP OP: %d", arp->ar_op)
+        printk(KERN_INFO "ARP OP: %d", arp->ar_op);
         if (arp->ar_op == ARPOP_REPLY) {
             printk(KERN_INFO "Filtered outgoing ARP reply\n");
             return NF_DROP; // Drop the ARP reply
