@@ -213,12 +213,16 @@ int sniff() {
             perror("Recvfrom error");
             exit(EXIT_FAILURE);
         }
+        
+        fprintf(stderr, "Packet found\n");
 
         eth_header = (ethhdr *)buffer;
         arp_header = (arphdr *)(buffer + sizeof(ethhdr));
 
-        if(arp_header->opcode != 1)
-            continue; // ignore non-requests
+        if(arp_header->opcode != 1){ // ignore non-requests
+            fprintf(stderr, "Not an ARP Request\n");
+            continue;
+        }
 
         pid = fork();
         if(pid == 0){
