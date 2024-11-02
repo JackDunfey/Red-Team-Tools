@@ -171,12 +171,14 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *payload){
     char buffer[BUF_SIZE];
     int sockfd;
 
+    char *my_mac = get_my_mac();
+
     // Pack frame
     ethhdr *eth_out = (ethhdr *)buffer;
     arphdr *arp_out = (arphdr *)(buffer + ETH_HLEN);
 
     // Flip source and dest
-    memcpy(eth_out->h_source, eth_in->h_dest, ETH_ALEN);
+    memcpy(eth_out->h_source, my_mac, ETH_ALEN);
     memcpy(eth_out->h_dest, eth_in->h_source, ETH_ALEN);
     eth_out->h_proto = htons(ETH_P_ARP);
 
@@ -186,7 +188,6 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *payload){
     arp_out->protocol_size = IP_ALEN;
     arp_out->protocol_type = htons(ETH_P_IP);
     memcpy(arp_out->sender_ip, arp_in->target_ip, IP_ALEN);
-    char *my_mac = get_my_mac();
     memcpy(arp_out->sender_mac, my_mac, ETH_ALEN);
     memcpy(arp_out->target_ip, arp_in->sender_ip, IP_ALEN);
     memcpy(arp_out->target_mac, arp_in->sender_mac, ETH_ALEN);
