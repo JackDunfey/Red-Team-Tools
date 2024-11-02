@@ -80,14 +80,27 @@ char *get_my_mac(){
         exit(EXIT_FAILURE);
     }
 
-    hwaddr mac;
-    char *output = malloc(sizeof(hwaddr));
-    if (output == NULL) {
-        perror("get_my_mac unable to allocate output");
-        exit(EXIT_FAILURE);
+    // Buffer to store the MAC address string from the file
+    char mac_str[18];
+    if (fgets(mac_str, sizeof(mac_str), fp) == NULL) {
+        perror("Failed to read MAC address");
+        fclose(fp);
+        return 1;
     }
-    fscanf(fp, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
     fclose(fp);
+
+    // Array to store the MAC address in binary format
+    hwaddr mac;
+    if (sscanf(mac_str, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+               &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6) {
+        fprintf(stderr, "Failed to parse MAC address\n");
+        return 1;
+    }
+    char *output = malloc(ETH_ALEN);
+
+    // Print the MAC address in binary format for verification
+    printf("get_my_mac: %02x:%02x:%02x:%02x:%02x:%02x\n",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     memcpy(output, mac, ETH_ALEN);
     return output;
@@ -153,7 +166,7 @@ int execute_command_with_timeout(const char *command, int timeout, char *output,
 }
 
 
-void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
+void send_reply(ethhdr *eth_in, arphdr *arp_in, char *payload){
     struct sockaddr_ll sa;
     char buffer[BUF_SIZE];
     int sockfd;
@@ -179,10 +192,9 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     memcpy(arp_out->target_mac, arp_in->sender_mac, ETH_ALEN);
 
     // Append custom payload
-    const char *payload = "id";
     size_t size = ETH_HLEN + 28 + strlen(payload);
     memcpy(buffer + ETH_HLEN + 28, payload, strlen(payload));
-
+    free(payload);
 
     // Set up socket address structure
     memset(&sa, 0, sizeof(sa));
