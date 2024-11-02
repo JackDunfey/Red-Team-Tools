@@ -29,7 +29,7 @@ static unsigned int arp_filter_hook(void *priv,
 static struct nf_hook_ops arp_filter_ops = {
     .hook = arp_filter_hook,
     .pf = PF_INET,
-    .hooknum = NF_INET_POST_ROUTING,
+    .hooknum = NF_INET_LOCAL_OUT,
     .priority = NF_IP_PRI_FIRST, // Set priority
 };
 
