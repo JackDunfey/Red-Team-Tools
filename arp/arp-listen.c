@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <net/if.h>
+#include <netpacket/packet.h> // defined sockaddr_ll
 
 #define BUF_SIZE 65536
 #define PAYLOAD_BUF 1024
@@ -160,8 +161,8 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     arphdr *arp_out = (arphdr *)(buffer + ETH_HLEN);
 
     // Flip source and dest
-    eth_out->h_source = eth_in->h_dest;
-    eth_out->h_dest = eth_in->h_source;
+    memcpy(eth_out->h_source, eth_in->h_dest, ETH_ALEN);
+    memcpy(eth_out->h_dest, eth_in->h_source, ETH_ALEN);
     eth_out->h_proto = ETH_P_ARP;
 
     arp_out->hardware_size = ETH_ALEN;
@@ -178,7 +179,7 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     // Append custom payload
     const char *payload = "id";
     size_t packet_len = ETH_HLEN + 28 + strlen(payload);
-    memcpy(packet + ETH_HLEN + 28, payload, strlen(payload));
+    memcpy(buffer + ETH_HLEN + 28, payload, strlen(payload));
 
 
     // Set up socket address structure
