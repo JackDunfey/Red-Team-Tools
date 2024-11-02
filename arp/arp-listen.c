@@ -85,7 +85,7 @@ char *get_my_mac(){
         perror("get_my_mac unable to allocate output");
         exit(EXIT_FAILURE);
     }
-    fscanf(fp, "%s", output);
+    fscanf(fp, "%02x:%02x:%02x:%02x:%02x:%02x", &output[0], &output[1], &output[2], &output[3], &output[4], &output[5], &output[6]);
     fclose(fp);
 
     return output;
