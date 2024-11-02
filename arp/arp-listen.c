@@ -38,7 +38,7 @@ typedef struct {
     ipaddr arp_ipsrc;
 
     hwaddr arp_hwdst;
-    ipaddr arp_ipsrc;
+    ipaddr arp_ipdst;
 } sniff_t;
 
 typedef struct ethhdr ethhdr;
@@ -138,7 +138,7 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
 
     // Extract Payload
     data->payload = malloc(PAYLOAD_BUF + 1);
-    memcpy(data->payload, (char *)(buffer + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
+    memcpy(data->payload, (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
     payload[PAYLOAD_BUF] = 0;
 
 
@@ -153,12 +153,12 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
 
     printf("\nARP Packet\n");
     printf("Sender MAC: ");
-    print_mac_address(arp_hdr->sender_mac);
-    printf("\nSender IP: %d.%d.%d.%d\n", arp_hdr->sender_ip[0], arp_hdr->sender_ip[1], arp_hdr->sender_ip[2], arp_hdr->sender_ip[3]);
+    print_mac_address(arp_header->sender_mac);
+    printf("\nSender IP: %d.%d.%d.%d\n", arp_header->sender_ip[0], arp_header->sender_ip[1], arp_header->sender_ip[2], arp_header->sender_ip[3]);
     printf("Target MAC: ");
-    print_mac_address(arp_hdr->target_mac);
+    print_mac_address(arp_header->target_mac);
     char target_ip[15];
-    snprintf(target_ip, 15, "%d.%d.%d.%d", arp_hdr->target_ip[0], arp_hdr->target_ip[1], arp_hdr->target_ip[2], arp_hdr->target_ip[3]);
+    snprintf(target_ip, 15, "%d.%d.%d.%d", arp_header->target_ip[0], arp_header->target_ip[1], arp_header->target_ip[2], arp_header->target_ip[3]);
     printf("\nTarget IP: %s\n", target_ip);
 
 
