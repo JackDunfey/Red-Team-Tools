@@ -11,7 +11,7 @@
 #include <linux/kmod.h>
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Your Name");
+MODULE_AUTHOR("Jack Dunfey");
 MODULE_DESCRIPTION("Netfilter module to execute a command on ARP request with a workqueue");
 
 static struct nf_hook_ops arp_hook;
