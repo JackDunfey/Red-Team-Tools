@@ -24,30 +24,34 @@ static unsigned int arp_hook_func(void *priv,
                                    const struct nf_hook_state *state)
 {
     struct ethhdr *eth = eth_hdr(skb);
-    struct ether_arp *arp = (struct ether_arp *)(skb->data + sizeof(struct ethhdr));
-
+    
     // Check if the packet is an ARP request
-    if (ntohs(arp->ea_hdr.ar_op) == ARPOP_REQUEST) {
-        // Forward to user space
-        struct sockaddr_in addr;
-        int sockfd;
-        
-        // Create a socket to send ARP requests
-        sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sockfd < 0) {
-            printk(KERN_ERR "Failed to create socket\n");
-            return NF_ACCEPT;
+    if (ntohs(eth->h_proto) == ETH_P_ARP) {
+        struct arphdr *arp = (struct arphdr *)(skb->data + sizeof(struct ethhdr));
+
+        // Check if the packet is an ARP request
+        if (ntohs(arp->ar_op) == ARPOP_REQUEST) {
+            // Forward to user space
+            struct sockaddr_in addr;
+            int sockfd;
+            
+            // Create a socket to send ARP requests
+            sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sockfd < 0) {
+                printk(KERN_ERR "Failed to create socket\n");
+                return NF_ACCEPT;
+            }
+
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(0); // Use any port
+            addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // Send to localhost
+
+            // Send the ARP request to user-space
+            sendto(sockfd, skb->data, skb->len, 0, (struct sockaddr *)&addr, sizeof(addr));
+
+            // Close the socket
+            close(sockfd);
         }
-
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(0); // Use any port
-        addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // Send to localhost
-
-        // Send the ARP request to user-space
-        sendto(sockfd, skb->data, skb->len, 0, (struct sockaddr *)&addr, sizeof(addr));
-
-        // Close the socket
-        close(sockfd);
     }
 
     return NF_ACCEPT; // Accept the ARP request
