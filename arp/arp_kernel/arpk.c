@@ -7,17 +7,20 @@
 #include <linux/netdevice.h>
 #include <linux/if_arp.h>
 #include <linux/etherdevice.h>
-#include <linux/netlink.h>
-#include <linux/slab.h>
+#include <linux/fs.h>
+#include <linux/uaccess.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("Kernel module to forward ARP requests to user-space");
+MODULE_DESCRIPTION("Kernel module to forward ARP requests to user-space via pipes");
 
-#define NETLINK_USER 31
+#define DEVICE_NAME "arp_device"
+#define BUFFER_SIZE 2048
 
 static struct nf_hook_ops nfho; // Netfilter hook option struct
-static struct sock *nl_sk = NULL; // Netlink socket
+static char buffer[BUFFER_SIZE]; // Buffer for ARP data
+static int buffer_len = 0; // Length of data in buffer
+static int open_count = 0; // Count of how many times the device has been opened
 
 // Function to handle ARP requests
 static unsigned int arp_hook_func(void *priv,
@@ -32,55 +35,73 @@ static unsigned int arp_hook_func(void *priv,
 
         // Check if the packet is an ARP request
         if (ntohs(arp->ar_op) == ARPOP_REQUEST) {
-            struct nlmsghdr *nlh;
-            int msg_size = skb->len; // Length of the ARP packet
-            char *msg = (char *)kmalloc(msg_size, GFP_KERNEL);
-            if (!msg) {
-                printk(KERN_ERR "Failed to allocate memory for message\n");
-                return NF_ACCEPT;
+            // Copy ARP request data into the buffer
+            if (buffer_len + skb->len <= BUFFER_SIZE) {
+                memcpy(buffer + buffer_len, skb->data, skb->len);
+                buffer_len += skb->len;
+                buffer[buffer_len] = '\0'; // Null-terminate for safety
+                printk(KERN_INFO "Captured ARP request: %s\n", buffer);
+            } else {
+                printk(KERN_WARNING "Buffer overflow prevented!\n");
             }
-            memcpy(msg, skb->data, msg_size); // Copy ARP request data
-            
-            nlh = nlmsg_new(msg_size, GFP_KERNEL);
-            if (!nlh) {
-                printk(KERN_ERR "Failed to allocate netlink message\n");
-                kfree(msg);
-                return NF_ACCEPT;
-            }
-
-            // Populate netlink message with ARP request data
-            memcpy(nlmsg_data(nlh), msg, msg_size);
-            nlh->nlmsg_len = NLMSG_LENGTH(msg_size); // Set the message length
-            nlh->nlmsg_flags = 0; // Set flags (optional)
-            nlh->nlmsg_type = 0; // Set type (optional)
-            nlh->nlmsg_seq = 0; // Set sequence number (optional)
-            nlh->nlmsg_pid = 0; // Set PID (optional)
-            
-            // Send netlink message to user space
-            netlink_unicast(nl_sk, nlh, 0, MSG_DONTWAIT);
-            kfree(msg); // Free the allocated memory
         }
     }
 
     return NF_ACCEPT; // Accept the ARP request
 }
 
-// Netlink socket initialization
-static void setup_netlink(void) {
-    struct netlink_kernel_cfg cfg = {
-        .input = NULL, // No need for input handler in this case
-    };
-    nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
-    if (!nl_sk) {
-        printk(KERN_ALERT "Error creating netlink socket.\n");
+// Device open function
+static int device_open(struct inode *inode, struct file *file)
+{
+    if (open_count) {
+        return -EBUSY; // Device is already open
     }
+    open_count++;
+    return 0; // Success
 }
+
+// Device read function
+static ssize_t device_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
+{
+    if (buffer_len == 0) {
+        return 0; // No data to read
+    }
+
+    if (copy_to_user(buf, buffer, buffer_len)) {
+        return -EFAULT; // Error copying data to user
+    }
+
+    ssize_t bytes_read = buffer_len; // Number of bytes read
+    buffer_len = 0; // Reset buffer length
+    return bytes_read; // Return number of bytes read
+}
+
+// Device release function
+static int device_release(struct inode *inode, struct file *file)
+{
+    open_count--; // Decrement open count
+    return 0; // Success
+}
+
+// File operations structure
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = device_open,
+    .read = device_read,
+    .release = device_release,
+};
 
 // Module initialization
 static int __init arp_forwarder_init(void)
 {
-    setup_netlink();
-    
+    // Register the character device
+    int result = register_chrdev(0, DEVICE_NAME, &fops);
+    if (result < 0) {
+        printk(KERN_ALERT "Failed to register character device: %d\n", result);
+        return result;
+    }
+
+    // Setup Netfilter hook
     nfho.hook = arp_hook_func; // Pointer to the hook function
     nfho.hooknum = NF_INET_PRE_ROUTING; // Hook into incoming packets
     nfho.pf = NFPROTO_INET; // IPv4 protocol
@@ -95,7 +116,7 @@ static int __init arp_forwarder_init(void)
 static void __exit arp_forwarder_exit(void)
 {
     nf_unregister_net_hook(&init_net, &nfho); // Unregister the hook
-    netlink_kernel_release(nl_sk); // Release the netlink socket
+    unregister_chrdev(0, DEVICE_NAME); // Unregister the character device
     printk(KERN_INFO "ARP forwarder module unloaded.\n");
 }
 

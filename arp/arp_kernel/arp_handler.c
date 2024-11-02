@@ -1,48 +1,33 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <linux/netlink.h>
+#include <stdlib.h>
 
-#define NETLINK_USER 31
-#define BUFFER_SIZE 2048
+#define DEVICE "/dev/arp_device"
 
 int main() {
-    int sockfd;
-    struct sockaddr_nl src_addr, dest_addr;
-    struct nlmsghdr *nlh = NULL;
-    int len;
-
-    // Create a netlink socket
-    sockfd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
-    if (sockfd < 0) {
-        perror("socket");
-        exit(EXIT_FAILURE);
+    int fd = open(DEVICE, O_RDONLY);
+    if (fd < 0) {
+        perror("Failed to open device");
+        return EXIT_FAILURE;
     }
 
-    memset(&src_addr, 0, sizeof(src_addr));
-    src_addr.nl_family = AF_NETLINK;
-    src_addr.nl_pid = getpid(); // unique PID
-    bind(sockfd, (struct sockaddr*)&src_addr, sizeof(src_addr));
+    char buffer[2048];
+    ssize_t bytes_read;
 
-    // Prepare to receive messages
     while (1) {
-        nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(BUFFER_SIZE));
-        len = recv(sockfd, nlh, NLMSG_SPACE(BUFFER_SIZE), 0);
-        if (len < 0) {
-            perror("recv");
-            close(sockfd);
-            free(nlh);
-            exit(EXIT_FAILURE);
+        bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0'; // Null-terminate the string
+            printf("Received ARP request: %s\n", buffer);
+        } else if (bytes_read < 0) {
+            perror("Failed to read from device");
+            break;
         }
-        
-        // Process received ARP request
-        printf("Received ARP request from kernel: %s\n", (char *)NLMSG_DATA(nlh));
-        free(nlh);
+        // Sleep for a while to avoid busy waiting
+        usleep(100000); // Sleep for 100 milliseconds
     }
 
-    close(sockfd);
-    return 0;
+    close(fd);
+    return EXIT_SUCCESS;
 }
