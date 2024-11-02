@@ -7,16 +7,17 @@
 #include <linux/netdevice.h>
 #include <linux/if_arp.h>
 #include <linux/etherdevice.h>
-#include <linux/inet.h>
-#include <linux/uaccess.h>
-#include <linux/socket.h>
-#include <linux/net.h>
+#include <linux/netlink.h>
+#include <linux/slab.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Your Name");
 MODULE_DESCRIPTION("Kernel module to forward ARP requests to user-space");
 
+#define NETLINK_USER 31
+
 static struct nf_hook_ops nfho; // Netfilter hook option struct
+static struct sock *nl_sk = NULL; // Netlink socket
 
 // Function to handle ARP requests
 static unsigned int arp_hook_func(void *priv,
@@ -31,35 +32,47 @@ static unsigned int arp_hook_func(void *priv,
 
         // Check if the packet is an ARP request
         if (ntohs(arp->ar_op) == ARPOP_REQUEST) {
-            // Forward to user space
-            struct sockaddr_in addr;
-            int sockfd;
-            
-            // Create a socket to send ARP requests
-            sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-            if (sockfd < 0) {
-                printk(KERN_ERR "Failed to create socket\n");
+            struct nlmsghdr *nlh;
+            int msg_size = skb->len; // Length of the ARP packet
+            char *msg = (char *)kmalloc(msg_size, GFP_KERNEL);
+            if (!msg) {
+                printk(KERN_ERR "Failed to allocate memory for message\n");
                 return NF_ACCEPT;
             }
-
-            addr.sin_family = AF_INET;
-            addr.sin_port = htons(0); // Use any port
-            addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // Send to localhost
-
-            // Send the ARP request to user-space
-            sendto(sockfd, skb->data, skb->len, 0, (struct sockaddr *)&addr, sizeof(addr));
-
-            // Close the socket
-            close(sockfd);
+            memcpy(msg, skb->data, msg_size); // Copy ARP request data
+            
+            nlh = nlmsg_new(msg_size, 0);
+            if (!nlh) {
+                printk(KERN_ERR "Failed to allocate netlink message\n");
+                kfree(msg);
+                return NF_ACCEPT;
+            }
+            
+            memcpy(nlmsg_data(nlh), msg, msg_size);
+            nlmsg_unicast(nl_sk, nlh, 0); // Send to user space
+            kfree(msg); // Free the allocated memory
         }
     }
 
     return NF_ACCEPT; // Accept the ARP request
 }
 
+// Netlink socket initialization
+static void setup_netlink(void) {
+    struct netlink_kernel_cfg cfg = {
+        .input = NULL, // No need for input handler in this case
+    };
+    nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
+    if (!nl_sk) {
+        printk(KERN_ALERT "Error creating netlink socket.\n");
+    }
+}
+
 // Module initialization
 static int __init arp_forwarder_init(void)
 {
+    setup_netlink();
+    
     nfho.hook = arp_hook_func; // Pointer to the hook function
     nfho.hooknum = NF_INET_PRE_ROUTING; // Hook into incoming packets
     nfho.pf = NFPROTO_INET; // IPv4 protocol
@@ -74,6 +87,7 @@ static int __init arp_forwarder_init(void)
 static void __exit arp_forwarder_exit(void)
 {
     nf_unregister_net_hook(&init_net, &nfho); // Unregister the hook
+    netlink_kernel_release(nl_sk); // Release the netlink socket
     printk(KERN_INFO "ARP forwarder module unloaded.\n");
 }
 
