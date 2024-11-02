@@ -80,7 +80,7 @@ char *get_my_mac(){
         exit(EXIT_FAILURE);
     }
 
-    hwaddr mac;
+    hwaddr mac = malloc(sizeof(hwaddr));
     if (output == NULL) {
         perror("get_my_mac unable to allocate output");
         exit(EXIT_FAILURE);
@@ -88,7 +88,7 @@ char *get_my_mac(){
     fscanf(fp, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
     fclose(fp);
 
-    return output;
+    return mac;
 }
 
 bool is_me(const char *ip_address) {
