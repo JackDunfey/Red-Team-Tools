@@ -1,138 +1,66 @@
-#include <linux/init.h>
-#include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/netfilter.h>
+#include <linux/netfilter_ipv4.h>
 #include <linux/skbuff.h>
-#include <linux/netdevice.h>
+#include <linux/ip.h>
+#include <linux/inet.h>
 #include <linux/if_arp.h>
-#include <linux/etherdevice.h>
-#include <linux/fs.h>
-#include <linux/uaccess.h>
+#include <linux/netdevice.h>
+#include <linux/unistd.h>
+#include <linux/kmod.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("Kernel module to forward ARP requests to user-space via pipes");
+MODULE_DESCRIPTION("Netfilter module to execute a command on ARP request");
 
-#define DEVICE_NAME "arp_device"
-#define BUFFER_SIZE 2048
+static struct nf_hook_ops arp_hook;
 
-static int major_number;        // Store the device's major number
-static char buffer[BUFFER_SIZE]; // Buffer to hold ARP data
-static int buffer_len = 0;       // Length of data in the buffer
-static int open_count = 0;       // Count of how many times the device has been opened
+unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
+                           const struct nf_hook_state *state) {
+    struct arphdr *arp_header;
 
-// Function to handle ARP requests
-static unsigned int arp_hook_func(void *priv,
-                                   struct sk_buff *skb,
-                                   const struct nf_hook_state *state)
-{
-    struct ethhdr *eth = eth_hdr(skb);
+    if (!skb) return NF_ACCEPT;
 
-    if (ntohs(eth->h_proto) == ETH_P_ARP) {
-        struct arphdr *arp = (struct arphdr *)(skb->data + sizeof(struct ethhdr));
-        
-        printk(KERN_INFO "ARP hook function triggered.\n");
+    /* Check if the packet is an ARP packet */
+    if (skb->protocol != htons(ETH_P_ARP)) return NF_ACCEPT;
 
-        // Check if the packet is an ARP request
-        if (ntohs(arp->ar_op) == ARPOP_REQUEST) {
-            printk(KERN_INFO "ARP request detected. Packet length: %d\n", skb->len);
+    arp_header = arp_hdr(skb);
 
-            // Copy ARP request data into the buffer
-            if (buffer_len + skb->len <= BUFFER_SIZE) {
-                memcpy(buffer + buffer_len, skb->data, skb->len);
-                buffer_len += skb->len;
-                buffer[buffer_len] = '\0'; // Null-terminate for safety
-                printk(KERN_INFO "ARP data added to buffer. Current buffer length: %d\n", buffer_len);
-            } else {
-                printk(KERN_WARNING "Buffer overflow prevented. Buffer length: %d, Packet size: %d\n", buffer_len, skb->len);
-            }
-        }
+    /* Check if it's an ARP request */
+    if (arp_header->ar_op == htons(ARPOP_REQUEST)) {
+        /* Define the command to run */
+        char *argv[] = { "/bin/ls", NULL };
+        char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
+
+        printk(KERN_INFO "ARP request detected, executing ls command\n");
+
+        /* Execute user-level command */
+        call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
     }
 
-    return NF_ACCEPT; // Accept the ARP request
+    return NF_ACCEPT;
 }
 
-// Device open function
-static int device_open(struct inode *inode, struct file *file)
-{
-    if (open_count) {
-        printk(KERN_WARNING "Device already open.\n");
-        return -EBUSY;
-    }
-    open_count++;
-    printk(KERN_INFO "Device opened. Open count: %d\n", open_count);
+static int __init arp_exec_init(void) {
+    printk(KERN_INFO "Loading ARP Exec module\n");
+
+    arp_hook.hook = arp_exec_hook;
+    arp_hook.pf = NFPROTO_ARP;
+    arp_hook.hooknum = NF_ARP_IN;
+    arp_hook.priority = NF_IP_PRI_FIRST;
+
+    /* Register the Netfilter hook */
+    nf_register_net_hook(&init_net, &arp_hook);
     return 0;
 }
 
-// Device read function
-static ssize_t device_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
-{
-    if (buffer_len == 0) {
-        printk(KERN_INFO "No data to read from buffer.\n");
-        return 0; // No data to read
-    }
+static void __exit arp_exec_exit(void) {
+    printk(KERN_INFO "Unloading ARP Exec module\n");
 
-    printk(KERN_INFO "Reading %d bytes from buffer.\n", buffer_len);
-
-    // Copy data to user-space buffer
-    if (copy_to_user(buf, buffer, buffer_len)) {
-        printk(KERN_WARNING "Error copying data to user space.\n");
-        return -EFAULT;
-    }
-
-    ssize_t bytes_read = buffer_len; // Number of bytes read
-    buffer_len = 0; // Reset buffer length
-    printk(KERN_INFO "Data read successfully. Bytes read: %zd\n", bytes_read);
-    return bytes_read;
+    /* Unregister the Netfilter hook */
+    nf_unregister_net_hook(&init_net, &arp_hook);
 }
 
-// Device release function
-static int device_release(struct inode *inode, struct file *file)
-{
-    open_count--;
-    printk(KERN_INFO "Device released. Open count: %d\n", open_count);
-    return 0;
-}
-
-// File operations structure
-static struct file_operations fops = {
-    .open = device_open,
-    .read = device_read,
-    .release = device_release,
-};
-
-// Module initialization
-static int __init arp_forwarder_init(void)
-{
-    printk(KERN_INFO "Initializing ARP forwarder module.\n");
-
-    // Register the character device
-    major_number = register_chrdev(0, DEVICE_NAME, &fops);
-    if (major_number < 0) {
-        printk(KERN_ALERT "Failed to register character device: %d\n", major_number);
-        return major_number;
-    }
-
-    printk(KERN_INFO "Registered character device with major number %d\n", major_number);
-
-    // Setup Netfilter hook
-    nfho.hook = arp_hook_func;
-    nfho.hooknum = NF_INET_PRE_ROUTING;
-    nfho.pf = NFPROTO_INET;
-    nfho.priority = NF_IP_PRI_FIRST;
-
-    nf_register_net_hook(&init_net, &nfho);
-    printk(KERN_INFO "ARP forwarder module loaded successfully.\n");
-    return 0;
-}
-
-// Module cleanup
-static void __exit arp_forwarder_exit(void)
-{
-    nf_unregister_net_hook(&init_net, &nfho); // Unregister the hook
-    unregister_chrdev(major_number, DEVICE_NAME); // Unregister the character device
-    printk(KERN_INFO "ARP forwarder module unloaded.\n");
-}
-
-module_init(arp_forwarder_init);
-module_exit(arp_forwarder_exit);
+module_init(arp_exec_init);
+module_exit(arp_exec_exit);
