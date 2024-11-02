@@ -28,7 +28,7 @@ struct arp_work {
 
 /* Function to be run by the workqueue */
 static void arp_exec_work(struct work_struct *work) {
-    char *argv[] = { "/bin/ls", NULL };
+    char *argv[] = { "/bin/touch", "/tmp/newfile", NULL };
     char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
 
     printk(KERN_INFO "ARP request detected, executing ls command\n");
