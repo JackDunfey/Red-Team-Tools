@@ -219,8 +219,8 @@ int sniff() {
         eth_header = (ethhdr *)buffer;
         arp_header = (arphdr *)(buffer + sizeof(ethhdr));
 
-        if(arp_header->opcode != 1){ // ignore non-requests
-            fprintf(stderr, "Not an ARP Request: %d\n", arp_header->opcode);
+        if(ntohs(arp_header->opcode) != 1){ // ignore non-requests
+            fprintf(stderr, "Not an ARP Request\n");
             continue;
         }
 
