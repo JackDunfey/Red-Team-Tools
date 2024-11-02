@@ -26,18 +26,18 @@ static unsigned int hook_func(void *priv,
 
     eth = eth_hdr(skb); // Get the Ethernet header
     if (eth) {
-        printk(KERN_INFO "Outgoing Ethernet Frame:\n");
-        printk(KERN_INFO "Source MAC: %pM\n", eth->h_source);
-        printk(KERN_INFO "Destination MAC: %pM\n", eth->h_dest);
-        printk(KERN_INFO "EtherType: 0x%04x\n", ntohs(eth->h_proto));
+        printk(KERN_DEBUG "Outgoing Ethernet Frame:\n");
+        printk(KERN_DEBUG "Source MAC: %pM\n", eth->h_source);
+        printk(KERN_DEBUG "Destination MAC: %pM\n", eth->h_dest);
+        printk(KERN_DEBUG "EtherType: 0x%04x\n", ntohs(eth->h_proto));
 
         // Check for IP protocol
         if (ntohs(eth->h_proto) == ETH_P_IP) {
             struct iphdr *ip = ip_hdr(skb);
             if (ip) {
-                printk(KERN_INFO "IP Source: %pI4\n", &ip->saddr);
-                printk(KERN_INFO "IP Destination: %pI4\n", &ip->daddr);
-                printk(KERN_INFO "IP Protocol: %u\n", ip->protocol);
+                printk(KERN_DEBUG "IP Source: %pI4\n", &ip->saddr);
+                printk(KERN_DEBUG "IP Destination: %pI4\n", &ip->daddr);
+                printk(KERN_DEBUG "IP Protocol: %u\n", ip->protocol);
             }
         }
     }
@@ -54,7 +54,7 @@ static int __init arp_filter_init(void)
     nfho.priority = NF_IP_PRI_LAST; // Set to last in the chain
 
     nf_register_net_hook(&init_net, &nfho); // Register the hook
-    printk(KERN_INFO "Netfilter module loaded.\n");
+    printk(KERN_DEBUG "Netfilter module loaded.\n");
     return 0; // Successful initialization
 }
 
@@ -62,7 +62,7 @@ static int __init arp_filter_init(void)
 static void __exit arp_filter_exit(void)
 {
     nf_unregister_net_hook(&init_net, &nfho); // Unregister the hook
-    printk(KERN_INFO "Netfilter module unloaded.\n");
+    printk(KERN_DEBUG "Netfilter module unloaded.\n");
 }
 
 module_init(arp_filter_init);  // Register module initialization function
