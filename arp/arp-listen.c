@@ -16,7 +16,7 @@
 #define BUF_SIZE 65536
 #define PAYLOAD_BUF 1024
 #define IP_ALEN 4
-#define IF_NAME "eth0"
+#define IF_NAME "enp0s3"
 
 typedef unsigned char hwaddr[ETH_ALEN];
 typedef unsigned char ipaddr[IP_ALEN];
