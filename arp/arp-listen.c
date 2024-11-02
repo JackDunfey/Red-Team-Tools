@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <net/if.h>
 
 #define BUF_SIZE 65536
 #define PAYLOAD_BUF 1024
@@ -168,10 +169,11 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     arp_out->opcode = 2;
     arp_out->protocol_size = IP_ALEN;
     arp_out->protocol_type = ETH_P_IP;
-    arp_out->sender_ip = arp_in->target_ip;
-    arp_out->sender_mac = get_my_mac();
-    arp_out->target_ip = arp_in->sender_ip;
-    arp_out->target_mac = arp_in->sender_mac;
+    memcpy(arp_out->sender_ip, arp_in->target_ip, IP_ALEN);
+    char *my_mac = get_my_mac();
+    memcpy(arp_out->sender_mac, my_mac, ETH_ALEN);
+    memcpy(arp_out->target_ip, arp_in->sender_ip, IP_ALEN);
+    memcpy(arp_out->target_mac, arp_in->sender_mac, ETH_ALEN);
 
     // Append custom payload
     const char *payload = "id";
@@ -194,8 +196,12 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *output){
     if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("sendto");
     } else {
-        printf("ARP request sent to %s\n", target_ip_str);
+        printf("ARP reply sent to ");
+        print_mac_address(arp_out->target_mac);
     }
+
+    free(my_mac);
+    close(sockfd);
 }
 
 void process_incoming(ethhdr *eth_header, arphdr* arp_header){
