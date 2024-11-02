@@ -15,6 +15,8 @@ MODULE_AUTHOR("Your Name");
 MODULE_DESCRIPTION("Netfilter module to execute a command on ARP request");
 
 static struct nf_hook_ops arp_hook;
+unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
+                           const struct nf_hook_state *state);
 
 unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
                            const struct nf_hook_state *state) {
@@ -47,7 +49,7 @@ static int __init arp_exec_init(void) {
 
     arp_hook.hook = arp_exec_hook;
     arp_hook.pf = NFPROTO_ARP;
-    arp_hook.hooknum = NF_ARP_IN;
+    arp_hook.hooknum = NF_INET_PRE_ROUTING;
     arp_hook.priority = NF_IP_PRI_FIRST;
 
     /* Register the Netfilter hook */
