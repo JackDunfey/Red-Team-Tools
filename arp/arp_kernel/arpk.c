@@ -12,6 +12,9 @@ static unsigned int arp_filter_hook(void *priv,
     struct ethhdr *eth = eth_hdr(skb);
     struct arphdr *arp;
 
+    printk(KERN_INFO "Module hook called\n");
+    printk(KERN_INFO "h_proto ntohs -> %d\n", ntohs(eth->h_proto));
+
     if (ntohs(eth->h_proto) == ETH_P_ARP) {
         arp = (struct arphdr *)(skb->data + sizeof(struct ethhdr));
         printk(KERN_INFO "ARP OP: %d", arp->ar_op);
