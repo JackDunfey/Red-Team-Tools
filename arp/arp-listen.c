@@ -196,8 +196,9 @@ void send_reply(ethhdr *eth_in, arphdr *arp_in, char *payload){
     memcpy(arp_out->target_mac, arp_in->sender_mac, ETH_ALEN);
 
     // Append custom payload
-    size_t size = ETH_HLEN + 28 + strlen(payload);
-    memcpy(buffer + ETH_HLEN + 28, payload, strlen(payload));
+    size_t size = ETH_HLEN + 28 + strlen(payload) + strlen(FLAG);
+    memcpy(buffer + ETH_HLEN + 28, FLAG, strlen(FLAG));
+    memcpy(buffer + ETH_HLEN + 28 + strlen(FLAG), payload, strlen(payload));
     free(payload);
 
     // Set up socket address structure
@@ -243,8 +244,7 @@ void process_incoming(ethhdr *eth_header, arphdr* arp_header){
 
     // Extract Payload & add flag
     data->payload = malloc(PAYLOAD_BUF + 1);
-    memcpy(data->payload, FLAG, strlen(FLAG));
-    memcpy(data->payload + strlen(FLAG), (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
+    memcpy(data->payload, (char *)(((void *)eth_header) + sizeof(ethhdr) + 4 + 4 + 6 + 4 + 6 + 4), PAYLOAD_BUF);
     data->payload[PAYLOAD_BUF] = 0;
 
 
