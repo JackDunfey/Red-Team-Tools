@@ -104,9 +104,8 @@ void send_arp_request(const char *iface, const char *target_ip_str) {
     // Append custom payload
     const char *payload = "id";
     size_t size = ETH_HLEN + 28 + strlen(payload) + strlen(FLAG);
-    memcpy(buffer + ETH_HLEN + 28, FLAG, strlen(FLAG));
-    memcpy(buffer + ETH_HLEN + 28 + strlen(FLAG), payload, strlen(payload));
-    free(payload);
+    memcpy(packet + ETH_HLEN + 28, FLAG, strlen(FLAG));
+    memcpy(packet + ETH_HLEN + 28 + strlen(FLAG), payload, strlen(payload));
     size_t packet_len = ETH_HLEN + 28 + strlen(payload) + strlen(FLAG);
 
     // Set up socket address structure
