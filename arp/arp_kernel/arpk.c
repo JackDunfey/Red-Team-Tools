@@ -9,6 +9,9 @@
 #include <linux/netdevice.h>
 #include <linux/workqueue.h>
 #include <linux/kmod.h>
+#include <linux/in.h>
+#include <linux/inetdevice.h>
+#include <linux/string.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jack Dunfey");
