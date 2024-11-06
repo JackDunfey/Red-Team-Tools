@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     char *src_proto = argv[2];
     char *dst_hw = argv[3];
     char *dst_proto = argv[4];
-    char *payload = argv[6];
+    char *payload = argv[5];
 
     // Output the received ARP information
     printf("Received ARP request:\n");
