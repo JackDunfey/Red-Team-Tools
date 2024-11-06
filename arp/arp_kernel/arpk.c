@@ -20,11 +20,6 @@ static struct workqueue_struct *arp_wq;
 static void arp_exec_work(struct work_struct *work);
 unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
                            const struct nf_hook_state *state);
-size_t min(size_t a, size_t b);
-
-size_t min(size_t a, size_t b){
-    return (a < b) ? a : b;
-}
 
 #define ETH_ALEN 6
 #define IP_ALEN 4
@@ -109,7 +104,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             // TODO: ensure incoming arp_payload is nul-terminated
             work->payload_len = min(min(strlen(arp_payload), PAYLOAD_LEN), skb_tail_pointer(skb) - arp_ptr);
             memcpy(work->payload, arp_payload, work->payload_len); 
-            work->payload[payload_len] = 0;
+            work->payload[work->payload_len] = 0;
             
             /* Initialize work and queue it */
             INIT_WORK(&work->work, arp_exec_work);
