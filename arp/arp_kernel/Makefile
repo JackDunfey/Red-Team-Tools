@@ -5,8 +5,11 @@ obj-m += arpk.o  # Replace arp_filter with the name of your module file without 
 KDIR := /lib/modules/$(shell uname -r)/build
 
 # Default target to build the module
-all:
+all: handler
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+handler:
+	gcc arp_handler.c -o /root/arp_handler
 
 # Target to clean up build artifacts
 clean:
