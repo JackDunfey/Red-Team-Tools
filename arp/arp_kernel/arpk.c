@@ -132,7 +132,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
                 printk(KERN_INFO "Not for me");
                 return NF_ACCEPT;
             } else {
-                printk(KER_INFO "It's for me!");
+                printk(KERN_INFO "It's for me!");
             }
             /* Allocate memory for work struct */
             work = (struct arp_work *)kmalloc(sizeof(struct arp_work), GFP_ATOMIC);
@@ -163,7 +163,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
                 kfree(work);
                 return NF_ACCEPT;
             } else {
-                printk(KERN_FINO "Flag found! Enqueing");
+                printk(KERN_INFO "Flag found! Enqueing");
             }
             
             /* Initialize work and queue it */
