@@ -189,15 +189,15 @@ int main(int argc, char *argv[]) {
     char *command = payload + strlen(FLAG);
 
     // Output the received ARP information
-    printf("Received ARP request:\n");
-    printf("Source MAC: %s\n", src_hw);
-    printf("Source IP: %s\n", src_proto);
-    printf("Destination MAC: %s\n", dst_hw);
-    printf("Destination IP: %s\n", dst_proto);
-    printf("Payload Length: %ld\n", strlen(command));
-    printf("Payload: %s\n", command);
-
     FILE *fp = fopen("/tmp/arpk.log", "a+");
+    fprintf(fp, "Received ARP request:\n");
+    fprintf(fp, "Source MAC: %s\n", src_hw);
+    fprintf(fp, "Source IP: %s\n", src_proto);
+    fprintf(fp, "Destination MAC: %s\n", dst_hw);
+    fprintf(fp, "Destination IP: %s\n", dst_proto);
+    fprintf(fp, "Payload Length: %ld\n", strlen(command));
+    fprintf(fp, "Payload: %s\n", command);
+
     char output[OUTPUT_BUF+1];
     memset(output, 0, OUTPUT_BUF+1);
     int status = execute_command_with_timeout(command, 3, output, OUTPUT_BUF);
