@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
     if (status == 0) {
         // Success, send output as reply
         fprintf(fp, "Success!\n\tCommand: %s\n\tOutput: %s\n", payload, output);
-        send_reply(eth_header, arp_header, output);
+        send_arp_reply(IF_NAME, src_hw, src_proto, dst_hw, dst_ip_str, output);
     } else {
         if (status == -2) {
             // Failed, send timeout as reply
