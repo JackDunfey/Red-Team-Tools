@@ -16,11 +16,12 @@
 
 #define PACKET_LEN 65535
 #define OUTPUT_BUF 1024
+#define ARP_REPLY_OPCODE 2
 #define IF_NAME "enp0s3" // FIXME: make this automatic
 
 int get_my_mac(unsigned char mac[ETH_ALEN]){
     char filename[100];
-    snprintf(filename, 100, "/sys/class/net/%s/address", get_iface());
+    snprintf(filename, 100, "/sys/class/net/%s/address", IF_NAME);
     fprintf(stderr, "Attempting to open file: \"%s\"\n", filename);
 
     FILE *fp = fopen(filename, "r");
@@ -85,10 +86,10 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
            &dst_mac[3], &dst_mac[4], &dst_mac[5]);
 
     // Fill Ethernet header
-    memcpy(packet, dst_mac, MAC_LEN);                // Destination MAC
-    memcpy(packet + MAC_LEN, src_mac, MAC_LEN);      // Source MAC
-    packet[12] = ETH_TYPE_ARP >> 8;
-    packet[13] = ETH_TYPE_ARP & 0xff;
+    memcpy(packet, dst_mac, ETH_ALEN);                // Destination MAC
+    memcpy(packet + ETH_ALEN, src_mac, ETH_ALEN);      // Source MAC
+    packet[12] = ETH_P_ARP >> 8;
+    packet[13] = ETH_P_ARP & 0xff;
 
     // Fill ARP header for a reply
     unsigned char *arp_header = packet + 14;
@@ -96,15 +97,15 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
     arp_header[1] = 0x01;
     arp_header[2] = 0x08;                            // Protocol type (IP)
     arp_header[3] = 0x00;
-    arp_header[4] = MAC_LEN;                         // Hardware size
+    arp_header[4] = ETH_ALEN;                         // Hardware size
     arp_header[5] = IP_LEN;                          // Protocol size
     arp_header[6] = ARP_REPLY_OPCODE >> 8;           // Opcode (ARP Reply)
     arp_header[7] = ARP_REPLY_OPCODE & 0xff;
 
     // ARP Payload for reply
-    memcpy(arp_header + 8, src_mac, MAC_LEN);        // Sender MAC address
+    memcpy(arp_header + 8, src_mac, ETH_ALEN);        // Sender MAC address
     memcpy(arp_header + 14, &src_ip, IP_LEN);        // Sender IP address
-    memcpy(arp_header + 18, dst_mac, MAC_LEN);       // Target MAC address
+    memcpy(arp_header + 18, dst_mac, ETH_ALEN);       // Target MAC address
     memcpy(arp_header + 24, &dst_ip, IP_LEN);        // Target IP address
 
     // Append custom payload if any
@@ -114,8 +115,8 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
     // Set up socket address structure
     memset(&sa, 0, sizeof(sa));
     sa.sll_ifindex = if_nametoindex(iface);
-    sa.sll_halen = MAC_LEN;
-    memcpy(sa.sll_addr, dst_mac, MAC_LEN);
+    sa.sll_halen = ETH_ALEN;
+    memcpy(sa.sll_addr, dst_mac, ETH_ALEN);
 
     bool success;
     // Send the ARP reply packet
