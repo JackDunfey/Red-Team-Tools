@@ -3,14 +3,15 @@
 #include <string.h>
 #include <stdbool.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <netinet/if_ether.h>
-#include <netinet/in.h>
-#include <net/if.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <net/if.h>
+#include <netpacket/packet.h> // defined sockaddr_ll
 
 #define ETH_ALEN 6
 
