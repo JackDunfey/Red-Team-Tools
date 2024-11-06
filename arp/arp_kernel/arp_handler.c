@@ -21,6 +21,8 @@
 #define OUTPUT_BUF 1024
 #define ARP_REPLY_OPCODE 2
 #define IF_NAME "enp0s3" // FIXME: make this automatic
+#define FLAG "\x70\x95\x05"
+
 
 int get_my_mac(unsigned char mac[ETH_ALEN]){
     char filename[100];
