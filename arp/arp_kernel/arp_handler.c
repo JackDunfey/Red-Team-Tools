@@ -24,6 +24,9 @@ int main(int argc, char *argv[]) {
     printf("Payload: %s\n", payload);
 
     // You can add custom processing here if needed
+    FILE *fp = fopen("/tmp/filename", "a+");
+    fprintf(fp, "ARP user function ran!\n");
+    fclose(fp);
 
     return 0;
 }
