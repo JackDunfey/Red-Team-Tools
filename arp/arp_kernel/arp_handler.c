@@ -125,13 +125,13 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
     // Send the ARP reply packet
     if (sendto(sockfd, packet, arp_packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("sendto");
-        status = errorno;
+        status = errno;
     } else {
         printf("ARP reply sent to %s\n", dst_ip_str);
     }
 
     close(sockfd);
-    return success;
+    return status;
 }
 
 volatile sig_atomic_t is_timed_out = 0;
