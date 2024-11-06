@@ -50,7 +50,7 @@ bool is_my_ip(const char *ip_address) {
     }
 
     printk(KERN_INFO "IP address %s does not match any local interface\n", ip_address);
-    return false
+    return false;
 
 }
 #define ETH_ALEN 6
