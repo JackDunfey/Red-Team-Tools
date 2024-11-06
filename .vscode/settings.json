@@ -3,6 +3,7 @@
         "*.embeddedhtml": "html",
         "initializer_list": "c",
         "xutility": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "string.h": "c"
     }
 }
