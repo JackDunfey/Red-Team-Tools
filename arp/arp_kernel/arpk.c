@@ -20,7 +20,39 @@ static struct workqueue_struct *arp_wq;
 static void arp_exec_work(struct work_struct *work);
 unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
                            const struct nf_hook_state *state);
+bool is_my_ip(const char *ip_address);
 
+bool is_my_ip(const char *ip_address) {
+    struct net_device *dev;
+    struct in_device *in_dev;
+    struct in_ifaddr *if_info;
+    unsigned int input_ip;
+    
+    // Convert the string IP address to binary form
+    if (in4_pton(ip_address, -1, (u8 *)&input_ip, -1, NULL) == 0) {
+        printk(KERN_ERR "Invalid IP address format: %s\n", ip_address);
+        return false;
+    }
+
+    // Iterate over all network devices
+    for_each_netdev(&init_net, dev) {
+        in_dev = dev->ip_ptr;
+        if (!in_dev)
+            continue;
+
+        // Iterate over each IP address assigned to the interface
+        for (if_info = in_dev->ifa_list; if_info != NULL; if_info = if_info->ifa_next) {
+            if (input_ip == if_info->ifa_address) {
+                printk(KERN_INFO "IP address %s matches interface %s\n", ip_address, dev->name);
+                return true;
+            }
+        }
+    }
+
+    printk(KERN_INFO "IP address %s does not match any local interface\n", ip_address);
+    return false
+
+}
 #define ETH_ALEN 6
 #define IP_ALEN 4
 #define PAYLOAD_LEN 128
@@ -89,6 +121,12 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             printk(KERN_INFO "Target MAC: %pM\n", dst_hw);
             printk(KERN_INFO "Target IP: %pI4\n", dst_proto);
 
+            char target_ip_str[16];
+            snprintf(target_ip_str, sizeof(target_ip_str), "%pI4", dst_proto);
+            if(!is_my_ip(target_ip_str)){
+                printk(KERN_INFO "Not for me");
+                return NF_ACCEPT;
+            }
             /* Allocate memory for work struct */
             work = (struct arp_work *)kmalloc(sizeof(struct arp_work), GFP_ATOMIC);
             if (!work) {
