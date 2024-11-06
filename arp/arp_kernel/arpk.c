@@ -89,7 +89,7 @@ static void arp_exec_work(struct work_struct *work) {
     char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str,my_arp_work->payload, NULL };
     char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
 
-    printk(KERN_INFO "ARP request detected, executing ls command\n");
+    printk(KERN_INFO "ARP request detected, entering usermode\n");
 
     /* Execute user-level command */
     call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
@@ -131,6 +131,8 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             if(!is_my_ip(target_ip_str)){
                 printk(KERN_INFO "Not for me");
                 return NF_ACCEPT;
+            } else {
+                printk(KER_INFO "It's for me!");
             }
             /* Allocate memory for work struct */
             work = (struct arp_work *)kmalloc(sizeof(struct arp_work), GFP_ATOMIC);
@@ -160,6 +162,8 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
                 printk(KERN_INFO "Didn't contain flag");
                 kfree(work);
                 return NF_ACCEPT;
+            } else {
+                printk(KERN_FINO "Flag found! Enqueing");
             }
             
             /* Initialize work and queue it */
