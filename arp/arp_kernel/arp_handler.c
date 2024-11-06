@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <sys/socket.h>
 #include <netinet/if_ether.h>
 #include <sys/ioctl.h>
@@ -106,9 +107,9 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
 
     // ARP Payload for reply
     memcpy(arp_header + 8, src_mac, ETH_ALEN);        // Sender MAC address
-    memcpy(arp_header + 14, &src_ip, IP_LEN);        // Sender IP address
+    memcpy(arp_header + 14, &src_ip, IP_ALEN);        // Sender IP address
     memcpy(arp_header + 18, dst_mac, ETH_ALEN);       // Target MAC address
-    memcpy(arp_header + 24, &dst_ip, IP_LEN);        // Target IP address
+    memcpy(arp_header + 24, &dst_ip, IP_ALEN);        // Target IP address
 
     // Append custom payload if any
     size_t arp_packet_len = sizeof(struct ethhdr) + 28 + strlen(payload);
@@ -120,18 +121,17 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
     sa.sll_halen = ETH_ALEN;
     memcpy(sa.sll_addr, dst_mac, ETH_ALEN);
 
-    bool success;
+    int status = 0;
     // Send the ARP reply packet
     if (sendto(sockfd, packet, arp_packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("sendto");
-        success = false;
+        status = errorno;
     } else {
         printf("ARP reply sent to %s\n", dst_ip_str);
-        success = true;
     }
 
     close(sockfd);
-    return;
+    return success;
 }
 
 volatile sig_atomic_t is_timed_out = 0;
