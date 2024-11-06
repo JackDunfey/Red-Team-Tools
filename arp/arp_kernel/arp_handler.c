@@ -3,7 +3,7 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-    if (argc != 8) {
+    if (argc != 7) {
         fprintf(stderr, "Usage: %s <src_hw> <src_proto> <dst_hw> <dst_proto> <payload_len> <payload>\n", argv[0]);
         return 1;
     }
