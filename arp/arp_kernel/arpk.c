@@ -102,7 +102,14 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             memcpy(work->dst_hw, dst_hw, ETH_ALEN);
             memcpy(work->dst_proto, dst_proto, IP_ALEN);
             // TODO: ensure incoming arp_payload is nul-terminated
-            work->payload_len = min(min(strlen(arp_payload), PAYLOAD_LEN), skb_tail_pointer(skb) - arp_ptr);
+            size_t min_size = (skb_tail_pointer(skb) - arp_payload);
+            if (PAYLOAD_LEN < min_size){
+                min_size = PAYLOAD_LEN;
+            }
+            if (strlen(arp_payload) < min_size){
+                min_size = strlen(arp_payload) + 1;
+            }
+            work->payload_len = min_size;
             memcpy(work->payload, arp_payload, work->payload_len); 
             work->payload[work->payload_len] = 0;
             
