@@ -86,14 +86,14 @@ static void arp_exec_work(struct work_struct *work) {
     snprintf(dst_proto_str, sizeof(dst_proto_str), "%pI4", my_arp_work->dst_proto);
     snprintf(payload_len_str, 3, "%ld", my_arp_work->payload_len);
 
-    char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str,my_arp_work->payload, NULL };
+    char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str, my_arp_work->payload, NULL };
     char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
+    kfree(my_arp_work);
 
     printk(KERN_INFO "ARP request detected, entering usermode\n");
 
     /* Execute user-level command */
     call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
-    kfree(my_arp_work);
 }
 // TODO: look into NF_STOLEN
 
@@ -148,16 +148,11 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
         memcpy(work->dst_hw, dst_hw, ETH_ALEN);
         memcpy(work->dst_proto, dst_proto, IP_ALEN);
         // TODO: ensure incoming arp_payload is nul-terminated
-        size_t min_size = (skb_tail_pointer(skb) - arp_payload);
-        if (PAYLOAD_LEN < min_size){
-            min_size = PAYLOAD_LEN;
+        size_t payload_len = (skb_tail_pointer(skb) - arp_payload);
+        if (PAYLOAD_LEN < payload_len){
+            payload_len = PAYLOAD_LEN;
         }
-        if (strlen(arp_payload) < min_size){
-            min_size = strlen(arp_payload) + 1;
-        }
-        work->payload_len = min_size - strlen(FLAG);
-        memcpy(work->payload, arp_payload, work->payload_len); 
-        work->payload[work->payload_len] = 0;
+        strncpy(work->payload, arp_payload, payload_len); 
 
         if(work->payload_len < strlen(FLAG)){
             printk(KERN_INFO "No payload");
