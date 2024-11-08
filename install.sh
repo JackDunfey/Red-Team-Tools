@@ -1,6 +1,7 @@
 #!/bin/bash
 WHICH="$1"
 ROOT_PATH="$(dirname $( realpath "$0"  ))"
+export RED_TEAM_ROOT="$ROOT_PATH"
 
 echo "Dirname: $ROOT_PATH"
 echo "Which: $WHICH"
@@ -92,3 +93,5 @@ fi
 if [[ "$WHICH" == "services" ]]; then
     serviceSpam
 fi
+
+unset RED_TEAM_ROOT
