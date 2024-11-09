@@ -81,14 +81,9 @@ int send_arp_reply(const char *iface, const char *src_mac_str, const char *src_i
         exit(EXIT_FAILURE);
     }
 
-    // Retrieve MAC and IP of the interface
-    inet_aton(src_ip_str, &src_ip);
-    inet_aton(dst_ip_str, &dst_ip);
-
-    // Convert destination MAC address string to bytes
-    sscanf(dst_mac_str, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-           &dst_mac[0], &dst_mac[1], &dst_mac[2],
-           &dst_mac[3], &dst_mac[4], &dst_mac[5]);
+    // Retrieve MAC and IP of the interface (flip)
+    inet_aton(src_ip_str, &dst_ip);
+    inet_aton(dst_ip_str, &src_ip);
 
     // Fill Ethernet header
     memcpy(packet, dst_mac, ETH_ALEN);                // Destination MAC
