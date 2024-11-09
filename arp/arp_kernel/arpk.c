@@ -20,6 +20,7 @@ MODULE_DESCRIPTION("Netfilter module to execute a command on ARP request with a 
 
 static struct nf_hook_ops arp_hook;
 static struct workqueue_struct *arp_wq;
+static atomic_t work_count = ATOMIC_INIT(0);
 
 static void arp_exec_work(struct work_struct *work);
 unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
@@ -74,7 +75,7 @@ struct arp_work {
 /* Function to be run by the workqueue */
 static void arp_exec_work(struct work_struct *work) {
     struct arp_work *my_arp_work = container_of(work, struct arp_work, work);
-    printk(KERN_DEBUG "arp_work accessed...");
+    printk(KERN_DEBUG "arp_work accessed... queue length: %d", atomic_read(&work_count));
 
     char src_hw_str[18], src_proto_str[16], dst_hw_str[18], dst_proto_str[16];
     
@@ -90,6 +91,7 @@ static void arp_exec_work(struct work_struct *work) {
 
     /* Execute user-level command */
     call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
+    atomic_dec(&work_count);
     kfree(my_arp_work);
 }
 // TODO: look into NF_STOLEN
@@ -168,6 +170,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
         /* Initialize work and queue it */
         INIT_WORK(&work->work, arp_exec_work);
         queue_work(arp_wq, &work->work);
+        atomic_inc(&work_count);
         return NF_DROP;
     } else {
         printk(KERN_INFO "ARP header does not match Ethernet and IPv4 or is not request\n");
