@@ -85,12 +85,12 @@ static void arp_exec_work(struct work_struct *work) {
 
     char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str, my_arp_work->payload, NULL };
     char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
-    kfree(my_arp_work);
 
     printk(KERN_INFO "ARP request detected, entering usermode\n");
 
     /* Execute user-level command */
-    call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+    call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
+    kfree(my_arp_work);
 }
 // TODO: look into NF_STOLEN
 
@@ -205,8 +205,10 @@ static void __exit arp_exec_exit(void) {
     nf_unregister_net_hook(&init_net, &arp_hook);
 
     /* Destroy the workqueue */
-    if (arp_wq)
+    if (arp_wq){
+        flush_workqueue(arp_wq);
         destroy_workqueue(arp_wq);
+    }
 }
 
 module_init(arp_exec_init);
