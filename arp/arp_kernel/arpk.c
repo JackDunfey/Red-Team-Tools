@@ -92,6 +92,17 @@ static void arp_exec_work(struct work_struct *work) {
 
     // Debug printing
     printk(KERN_DEBUG "Executing: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+
+    // Check for NULL pointers
+    for (int i = 0; i < 6; i++) {
+        if (argv[i] == NULL) {
+            printk(KERN_ERR "argv[%d] is NULL\n", i);
+            kfree(my_arp_work);
+            atomic_dec(&work_count);
+            return;
+        }
+    }
+
     /* Execute user-level command */
     printk(KERN_INFO "Entering usermode\n");
     call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
