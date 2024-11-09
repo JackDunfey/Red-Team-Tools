@@ -89,6 +89,8 @@ static void arp_exec_work(struct work_struct *work) {
 
     printk(KERN_INFO "ARP request detected, entering usermode\n");
 
+    // Debug printing
+    printk(KERN_INFO "Executing: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
     /* Execute user-level command */
     call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
     atomic_dec(&work_count);
