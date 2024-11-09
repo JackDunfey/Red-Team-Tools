@@ -197,6 +197,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "Destination IP: %s\n", dst_proto);
     fprintf(fp, "Payload Length: %ld\n", strlen(command));
     fprintf(fp, "Payload: %s\n", command);
+    fclose(fp);
 
     char output[OUTPUT_BUF+1];
     memset(output, 0, OUTPUT_BUF+1);
@@ -224,6 +225,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Log to file
+    FILE *fp = fopen("/tmp/arpk.log", "a+");
     fprintf(fp, "\tCommand: %s\n\tOutput: %s\n", command, output);
     fclose(fp);
 
