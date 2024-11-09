@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Log to file
-    FILE *fp = fopen("/tmp/arpk.log", "a+");
+    fp = fopen("/tmp/arpk.log", "a+");
     fprintf(fp, "\tCommand: %s\n\tOutput: %s\n", command, output);
     fclose(fp);
 
