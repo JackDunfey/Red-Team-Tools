@@ -84,7 +84,7 @@ static void arp_exec_work(struct work_struct *work) {
     snprintf(src_proto_str, sizeof(src_proto_str), "%pI4", my_arp_work->src_proto);
     snprintf(dst_hw_str, sizeof(dst_hw_str), "%pM", my_arp_work->dst_hw);
     snprintf(dst_proto_str, sizeof(dst_proto_str), "%pI4", my_arp_work->dst_proto);
-    snprintf(payload_str, PAYLOAD_LEN+3, "\"%s\"", my_arp_work->payload);
+    snprintf(payload_str, PAYLOAD_LEN, "%s", my_arp_work->payload);
     kfree(my_arp_work);
 
     char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str, payload_str, NULL };
