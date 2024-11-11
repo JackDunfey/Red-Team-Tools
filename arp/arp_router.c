@@ -5,8 +5,6 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <netinet/ether.h>
-#include <netinet/ip.h>
 #include <unistd.h>
 
 #define FLAG "MY_FLAG"
@@ -44,7 +42,7 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
     struct arp_header *arp_header = (struct arp_header *)(buffer + 14);
 
     // Open raw socket
-    sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+    sockfd = socket(AF_PACKET, SOCK_RAW, htons(0x0806));  // ARP Ethertype
     if (sockfd == -1) {
         perror("Socket creation failed");
         exit(1);
@@ -63,11 +61,11 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
     // Set up Ethernet header
     memset(eth_header->dest_mac, 0xFF, 6);  // Broadcast MAC
     memcpy(eth_header->src_mac, src_mac, 6);
-    eth_header->ethertype = htons(ETH_P_ARP);  // ARP protocol
+    eth_header->ethertype = htons(0x0806);  // ARP protocol (0x0806)
 
     // Set up ARP header
     arp_header->hw_type = htons(1);            // Ethernet (1)
-    arp_header->proto_type = htons(ETH_P_IP);  // IPv4 (0x0800)
+    arp_header->proto_type = htons(0x0800);    // IPv4 (0x0800)
     arp_header->hw_len = 6;                    // MAC length
     arp_header->proto_len = 4;                 // IP length
     arp_header->opcode = htons(ARP_REQUEST);   // ARP Request
@@ -88,7 +86,7 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
 
     // Prepare sockaddr_ll structure
     memset(&sa, 0, sizeof(sa));
-    sa.sll_protocol = htons(ETH_P_ARP);
+    sa.sll_protocol = htons(0x0806);  // ARP protocol
     sa.sll_ifindex = if_nametoindex(interface);
 
     // Send the ARP request
@@ -111,10 +109,9 @@ int main(int argc, char *argv[]) {
 
     const char *interface = argv[1];
     const char *target_ip = argv[2];
-    const char *message = argv[3];
 
     // Send ARP request
-    send_arp_request(interface, target_ip, message);
+    send_arp_request(interface, target_ip, target_ip);
 
     return 0;
 }
