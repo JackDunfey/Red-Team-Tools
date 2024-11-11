@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <net/if_dl.h>
 #include <unistd.h>
 #include <net/ethernet.h>
 #include <fcntl.h>
@@ -14,6 +15,7 @@
 #include <net/bpf.h>
 
 #define ETH_ALEN 6
+#define ETH_HLEN 14 // ?
 #define IP_LEN 4
 #define ETH_TYPE_ARP 0x0806
 #define ARP_REQUEST_OPCODE 0x0001
