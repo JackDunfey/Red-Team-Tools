@@ -13,6 +13,7 @@
 #define ETH_P_ARP 0x0806
 #define ETH_ALEN 6
 #define ETH_HLEN 14
+#define AF_PACKET 17  // AF_PACKET manually declared for raw socket communication
 
 // Define the ARP header manually
 struct arp_header {
@@ -35,7 +36,7 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
     int sockfd;
     unsigned char src_mac[ETH_ALEN];
 
-    // Open raw socket
+    // Open raw socket (AF_PACKET, SOCK_RAW, ETH_P_ARP)
     sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
     if (sockfd < 0) {
         perror("Socket creation failed");
@@ -67,29 +68,4 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
     // Add the custom payload (FLAG + string)
     snprintf((char *)arp_req.payload, sizeof(arp_req.payload), "%s:%s", FLAG, payload_str);
 
-    // Send ARP packet with the custom payload
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_family = AF_INET;
-
-    // Send the ARP request (as a raw packet)
-    if (sendto(sockfd, &arp_req, sizeof(arp_req), 0, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-        perror("Error sending ARP request");
-        close(sockfd);
-        exit(1);
-    }
-
-    printf("ARP request sent to %s on interface %s with custom payload: %s\n", target_ip, interface, payload_str);
-
-    close(sockfd);
-}
-
-int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <interface> <target_ip> <payload_string>\n", argv[0]);
-        exit(1);
-    }
-
-    send_arp_request(argv[1], argv[2], argv[3]);
-
-    return 0;
-}
+    // Send ARP packet with the custom pay
