@@ -20,6 +20,9 @@
 #define DEFAULT_PACKET_LEN 42
 #define FLAG "\x70\x95\x05"
 
+
+#define LLADDR(s) ((caddr_t)((s)->sdl_data + (s)->sdl_nlen))
+
 // Function to retrieve the MAC address of an interface
 int get_mac_address(const char *iface, unsigned char *mac) {
     struct ifreq ifr;
