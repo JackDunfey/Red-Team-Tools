@@ -114,9 +114,10 @@ int main(int argc, char *argv[]) {
 
     const char *interface = argv[1];
     const char *target_ip = argv[2];
+    const char *message = argv[3];
 
     // Send ARP request
-    send_arp_request(interface, target_ip, target_ip);
+    send_arp_request(interface, target_ip, message);
 
     return 0;
 }
