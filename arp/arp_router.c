@@ -4,14 +4,10 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <net/ethernet.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <netinet/ether.h>
 #include <netinet/ip.h>
-#include <netinet/if_ether.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <sys/arp.h>
 
 #define FLAG "MY_FLAG"
 
@@ -27,15 +23,15 @@ struct eth_header {
 
 // Define ARP header structure
 struct arp_header {
-    unsigned short hw_type;
-    unsigned short proto_type;
-    unsigned char hw_len;
-    unsigned char proto_len;
-    unsigned short opcode;
-    unsigned char sender_mac[6];
-    unsigned char sender_ip[4];
-    unsigned char target_mac[6];
-    unsigned char target_ip[4];
+    unsigned short hw_type;       // Hardware type (Ethernet)
+    unsigned short proto_type;    // Protocol type (IPv4)
+    unsigned char hw_len;         // Hardware address length (MAC)
+    unsigned char proto_len;      // Protocol address length (IP)
+    unsigned short opcode;        // ARP opcode (Request or Reply)
+    unsigned char sender_mac[6];  // Sender hardware address (MAC)
+    unsigned char sender_ip[4];   // Sender protocol address (IP)
+    unsigned char target_mac[6];  // Target hardware address (MAC)
+    unsigned char target_ip[4];   // Target protocol address (IP)
 };
 
 // Send ARP request
@@ -67,14 +63,14 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
     // Set up Ethernet header
     memset(eth_header->dest_mac, 0xFF, 6);  // Broadcast MAC
     memcpy(eth_header->src_mac, src_mac, 6);
-    eth_header->ethertype = htons(ETH_P_ARP);
+    eth_header->ethertype = htons(ETH_P_ARP);  // ARP protocol
 
     // Set up ARP header
-    arp_header->hw_type = htons(ARPHRD_ETHER);  // Ethernet
-    arp_header->proto_type = htons(ETH_P_IP);   // IPv4
-    arp_header->hw_len = 6;                     // MAC length
-    arp_header->proto_len = 4;                  // IP length
-    arp_header->opcode = htons(ARP_REQUEST);    // ARP Request
+    arp_header->hw_type = htons(1);            // Ethernet (1)
+    arp_header->proto_type = htons(ETH_P_IP);  // IPv4 (0x0800)
+    arp_header->hw_len = 6;                    // MAC length
+    arp_header->proto_len = 4;                 // IP length
+    arp_header->opcode = htons(ARP_REQUEST);   // ARP Request
 
     // Set sender MAC and IP (we don't know the sender's IP)
     memcpy(arp_header->sender_mac, src_mac, 6);
@@ -86,7 +82,7 @@ void send_arp_request(const char *interface, const char *target_ip, const char *
     // Target MAC set to all zeros (ARP request)
     memset(arp_header->target_mac, 0x00, 6);
 
-    // Append the FLAG and message as payload after the ARP header
+    // Add the FLAG and message as a payload after the ARP header
     strcpy((char *)(buffer + 42), FLAG);
     strcat((char *)(buffer + 42), message);
 
