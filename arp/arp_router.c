@@ -1,117 +1,92 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ether.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #define FLAG "MY_FLAG"
 
-// Define ARP request operation code
-#define ARP_REQUEST 1
-
-// Define Ethernet header structure
-struct eth_header {
-    unsigned char dest_mac[6];
-    unsigned char src_mac[6];
-    unsigned short ethertype;
-};
-
-// Define ARP header structure
 struct arp_header {
-    unsigned short hw_type;       // Hardware type (Ethernet)
-    unsigned short proto_type;    // Protocol type (IPv4)
-    unsigned char hw_len;         // Hardware address length (MAC)
-    unsigned char proto_len;      // Protocol address length (IP)
-    unsigned short opcode;        // ARP opcode (Request or Reply)
-    unsigned char sender_mac[6];  // Sender hardware address (MAC)
-    unsigned char sender_ip[4];   // Sender protocol address (IP)
-    unsigned char target_mac[6];  // Target hardware address (MAC)
-    unsigned char target_ip[4];   // Target protocol address (IP)
+    u_int16_t htype;          // Hardware type
+    u_int16_t ptype;          // Protocol type
+    u_int8_t hlen;            // Hardware address length
+    u_int8_t plen;            // Protocol address length
+    u_int16_t op;             // ARP opcode
+    unsigned char sha[6];     // Sender MAC address
+    unsigned char spa[4];     // Sender IP address
+    unsigned char tha[6];     // Target MAC address
+    unsigned char tpa[4];     // Target IP address
+    unsigned char payload[256]; // Custom payload
 };
 
-// Send ARP request
-void send_arp_request(const char *interface, const char *target_ip, const char *message) {
-    int sockfd;
-    struct sockaddr_ll sa;
+void send_arp_request(const char *interface, const char *target_ip, const char *payload_str) {
     struct ifreq ifr;
-    unsigned char buffer[42 + strlen(message)];
-    struct eth_header *eth_header = (struct eth_header *)buffer;
-    struct arp_header *arp_header = (struct arp_header *)(buffer + 14);
+    struct arp_header arp_req;
+    struct sockaddr_in sa;
+    int sockfd;
+    unsigned char src_mac[6];
 
     // Open raw socket
-    sockfd = socket(AF_PACKET, SOCK_RAW, htons(0x0806));  // ARP Ethertype
-    if (sockfd == -1) {
+    sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+    if (sockfd < 0) {
         perror("Socket creation failed");
         exit(1);
     }
 
-    // Get MAC address of the interface
+    // Get interface MAC address
     strncpy(ifr.ifr_name, interface, IFNAMSIZ);
     if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) == -1) {
-        perror("IOCTL error");
+        perror("Interface MAC address retrieval failed");
         close(sockfd);
         exit(1);
     }
+    memcpy(src_mac, ifr.ifr_hwaddr.sa_data, 6);
 
-    unsigned char *src_mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+    // Build ARP request
+    memset(&arp_req, 0, sizeof(arp_req));
+    arp_req.htype = htons(1); // Ethernet
+    arp_req.ptype = htons(ETH_P_IP); // IPv4
+    arp_req.hlen = 6; // MAC address length
+    arp_req.plen = 4; // IPv4 address length
+    arp_req.op = htons(1); // ARP request
 
-    // Set up Ethernet header
-    memset(eth_header->dest_mac, 0xFF, 6);  // Broadcast MAC
-    memcpy(eth_header->src_mac, src_mac, 6);
-    eth_header->ethertype = htons(0x0806);  // ARP protocol (0x0806)
+    memcpy(arp_req.sha, src_mac, 6);
+    inet_pton(AF_INET, "0.0.0.0", arp_req.spa); // Sender IP (we don't know yet)
+    memset(arp_req.tha, 0, 6); // Target MAC (empty for request)
+    inet_pton(AF_INET, target_ip, arp_req.tpa); // Target IP
 
-    // Set up ARP header
-    arp_header->hw_type = htons(1);            // Ethernet (1)
-    arp_header->proto_type = htons(0x0800);    // IPv4 (0x0800)
-    arp_header->hw_len = 6;                    // MAC length
-    arp_header->proto_len = 4;                 // IP length
-    arp_header->opcode = htons(ARP_REQUEST);   // ARP Request
+    // Add the custom payload (FLAG + string)
+    snprintf((char *)arp_req.payload, sizeof(arp_req.payload), "%s:%s", FLAG, payload_str);
 
-    // Set sender MAC and IP (we don't know the sender's IP)
-    memcpy(arp_header->sender_mac, src_mac, 6);
-    inet_pton(AF_INET, "0.0.0.0", arp_header->sender_ip);  // 0.0.0.0 as placeholder for sender IP
-
-    // Set the target IP address
-    inet_pton(AF_INET, target_ip, arp_header->target_ip);
-
-    // Target MAC set to all zeros (ARP request)
-    memset(arp_header->target_mac, 0x00, 6);
-
-    // Add the FLAG and message as a payload after the ARP header
-    strcpy((char *)(buffer + 42), FLAG);
-    strcat((char *)(buffer + 42), message);
-
-    // Prepare sockaddr_ll structure
+    // Send ARP packet with the custom payload
     memset(&sa, 0, sizeof(sa));
-    sa.sll_protocol = htons(0x0806);  // ARP protocol
-    sa.sll_ifindex = if_nametoindex(interface);
+    sa.sin_family = AF_INET;
+    sa.sin_port = 0; // No specific port
+    sa.sin_addr.s_addr = inet_addr(target_ip);
 
-    // Send the ARP request
-    if (sendto(sockfd, buffer, 42 + strlen(message), 0, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-        perror("Send failed");
+    // Send the ARP request (as a raw packet)
+    if (sendto(sockfd, &arp_req, sizeof(arp_req), 0, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+        perror("Error sending ARP request");
         close(sockfd);
         exit(1);
     }
 
-    printf("ARP request sent to %s with FLAG: %s and message: %s\n", target_ip, FLAG, message);
+    printf("ARP request sent to %s on interface %s with custom payload: %s\n", target_ip, interface, payload_str);
 
     close(sockfd);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <interface> <target_ip>\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <interface> <target_ip> <payload_string>\n", argv[0]);
         exit(1);
     }
 
-    const char *interface = argv[1];
-    const char *target_ip = argv[2];
-
-    // Send ARP request
-    send_arp_request(interface, target_ip, target_ip);
+    send_arp_request(argv[1], argv[2], argv[3]);
 
     return 0;
 }
