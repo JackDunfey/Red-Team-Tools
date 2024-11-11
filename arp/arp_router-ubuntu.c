@@ -3,15 +3,13 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <netpacket/packet.h>
 #include <net/ethernet.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <net/bpf.h>
 
 #define ETH_ALEN 6
 #define IP_LEN 4
@@ -29,14 +27,13 @@ int get_mac_address(const char *iface, unsigned char *mac) {
         return -1;
     }
     strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    if (ioctl(fd, SIOCGIFDATA, &ifr) < 0) {
+    if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
         perror("ioctl");
         close(fd);
         return -1;
     }
-    struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr.ifr_addr;
-    memcpy(mac, LLADDR(sdl), ETH_ALEN);
     close(fd);
+    memcpy(mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
     return 0;
 }
 
@@ -61,36 +58,22 @@ int get_ip_address(const char *iface, struct in_addr *ip) {
 
 // Function to create and send an ARP request with a payload
 void send_arp_request(const char *iface, const char *target_ip_str) {
-    int bpf;
-    char bpf_device[16];
+    int sockfd;
     unsigned char packet[DEFAULT_PACKET_LEN + 10];
+    struct sockaddr_ll sa;
     unsigned char my_mac[ETH_ALEN], target_mac[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     struct in_addr my_ip, target_ip;
 
-    // Open BPF device
-    for (int i = 0; i < 10; i++) {
-        snprintf(bpf_device, sizeof(bpf_device), "/dev/bpf%d", i);
-        bpf = open(bpf_device, O_WRONLY);
-        if (bpf != -1) break;
-    }
-    if (bpf == -1) {
-        perror("open bpf");
-        exit(EXIT_FAILURE);
-    }
-
-    // Set BPF interface
-    struct ifreq ifr;
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    if (ioctl(bpf, BIOCSETIF, &ifr) < 0) {
-        perror("BIOCSETIF");
-        close(bpf);
+    // Create raw socket
+    if ((sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP))) < 0) {
+        perror("socket");
         exit(EXIT_FAILURE);
     }
 
     // Retrieve MAC and IP of the interface
     if (get_mac_address(iface, my_mac) < 0 || get_ip_address(iface, &my_ip) < 0) {
         fprintf(stderr, "Failed to get MAC or IP address of interface %s\n", iface);
-        close(bpf);
+        close(sockfd);
         exit(EXIT_FAILURE);
     }
     inet_aton(target_ip_str, &target_ip);
@@ -125,14 +108,20 @@ void send_arp_request(const char *iface, const char *target_ip_str) {
     memcpy(packet + ETH_HLEN + 28 + strlen(FLAG), payload, strlen(payload));
     size_t packet_len = ETH_HLEN + 28 + strlen(payload) + strlen(FLAG);
 
+    // Set up socket address structure
+    memset(&sa, 0, sizeof(sa));
+    sa.sll_ifindex = if_nametoindex(iface);
+    sa.sll_halen = ETH_ALEN;
+    memcpy(sa.sll_addr, target_mac, ETH_ALEN);
+
     // Send the packet
-    if (write(bpf, packet, packet_len) < 0) {
-        perror("write");
+    if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+        perror("sendto");
     } else {
         printf("ARP request sent to %s\n", target_ip_str);
     }
 
-    close(bpf);
+    close(sockfd);
 }
 
 int main(int argc, char *argv[]) {
