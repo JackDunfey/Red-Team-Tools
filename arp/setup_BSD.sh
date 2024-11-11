@@ -4,30 +4,30 @@
 
 # Update package repository information
 echo "Updating package repository information..."
-sudo pkg update
+pkg update
 
 # Install essential build tools
 echo "Installing essential build tools..."
-sudo pkg install -y gcc make gdb
+pkg install -y gcc make gdb
 
 # Install development libraries for raw socket programming
 echo "Installing development libraries..."
-sudo pkg install -y libpcap netinet
+pkg install -y libpcap netinet
 
 # Install the FreeBSD kernel headers (this will include headers like netinet/ether.h)
 echo "Installing kernel headers..."
-sudo pkg install -y freebsd-kernel-source
+pkg install -y freebsd-kernel-source
 
 # Check if the necessary libraries are installed
 echo "Checking if the necessary libraries are installed..."
 if ! pkg info | grep -q "libpcap"; then
   echo "libpcap not found. Installing..."
-  sudo pkg install -y libpcap
+  pkg install -y libpcap
 fi
 
 if ! pkg info | grep -q "netinet"; then
   echo "netinet not found. Installing..."
-  sudo pkg install -y netinet
+  pkg install -y netinet
 fi
 
 # Verify installation of packages
