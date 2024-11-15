@@ -4,35 +4,24 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <net/bpf.h>
 #include <sys/systm.h>
 #include <sys/mbuf.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-
-#include <sys/param.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <net/if.h>
 #include <net/bpf.h>
-#include <sys/systm.h>
-#include <sys/mbuf.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
 
-static int
-sniffer_handler(struct ifnet *ifp, struct mbuf *m, struct bpf_if *bpf)
+static void
+sniffer_handler(struct mbuf *m)
 {
     struct ip *ip_header;
     char src_ip[INET_ADDRSTRLEN];
     char dst_ip[INET_ADDRSTRLEN];
 
-    // Ensure the packet has an IP header
-    if (m->m_len < sizeof(struct ip)) {
-        return 0; // Ignore invalid packets
+    // Ensure the packet is valid and has an IP header
+    if (!m || m->m_len < sizeof(struct ip)) {
+        return; // Ignore invalid packets
     }
+
     ip_header = mtod(m, struct ip *);
 
     // Convert source and destination IP addresses to human-readable format
@@ -40,8 +29,6 @@ sniffer_handler(struct ifnet *ifp, struct mbuf *m, struct bpf_if *bpf)
     inet_ntop(AF_INET, &(ip_header->ip_dst), dst_ip, sizeof(dst_ip));
 
     printf("Captured IP packet: src=%s, dst=%s\n", src_ip, dst_ip);
-
-    return 0;
 }
 
 static int
