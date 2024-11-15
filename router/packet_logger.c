@@ -10,19 +10,36 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 
+#include <sys/param.h>
+#include <sys/module.h>
+#include <sys/kernel.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <net/bpf.h>
+#include <sys/systm.h>
+#include <sys/mbuf.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+
 static int
 sniffer_handler(struct ifnet *ifp, struct mbuf *m, struct bpf_if *bpf)
 {
     struct ip *ip_header;
-    
-    // Check for IP packet
+    char src_ip[INET_ADDRSTRLEN];
+    char dst_ip[INET_ADDRSTRLEN];
+
+    // Ensure the packet has an IP header
     if (m->m_len < sizeof(struct ip)) {
         return 0; // Ignore invalid packets
     }
     ip_header = mtod(m, struct ip *);
 
-    printf("Captured IP packet: src=%s, dst=%s\n",
-           inet_ntoa(ip_header->ip_src), inet_ntoa(ip_header->ip_dst));
+    // Convert source and destination IP addresses to human-readable format
+    inet_ntop(AF_INET, &(ip_header->ip_src), src_ip, sizeof(src_ip));
+    inet_ntop(AF_INET, &(ip_header->ip_dst), dst_ip, sizeof(dst_ip));
+
+    printf("Captured IP packet: src=%s, dst=%s\n", src_ip, dst_ip);
 
     return 0;
 }
