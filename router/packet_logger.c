@@ -4,13 +4,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
+#include <net/if_var.h>
+#include <net/bpf.h>
 #include <sys/systm.h>
 #include <sys/mbuf.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <net/bpf.h>
+#include <net/ethernet.h>
 
-static struct bpf_d *bpf_desc = NULL; // BPF descriptor
+static struct ifnet *sniffer_ifp = NULL; // Network interface pointer
 
 static void
 sniffer_handler(struct mbuf *m)
@@ -36,33 +38,30 @@ sniffer_handler(struct mbuf *m)
 static int
 sniffer_modevent(module_t mod, int event_type, void *arg)
 {
-    struct ifnet *ifp;
+    struct ifnet *ifp = NULL;
 
     switch (event_type) {
         case MOD_LOAD:
             printf("Sniffer module loaded.\n");
 
-            // Get the first network interface
-            ifp = ifnet_byindex(1); // Replace with desired index or name lookup
-            if (!ifp) {
-                printf("Error: No network interface found.\n");
+            // Find the first network interface
+            IFNET_FOREACH(ifp) {
+                sniffer_ifp = ifp; // Save the interface pointer
+                printf("Attached to interface: %s\n", ifp->if_xname);
+                bpfattach(ifp, DLT_EN10MB, sizeof(struct ether_header));
+                break;
+            }
+
+            if (!sniffer_ifp) {
+                printf("Error: No valid network interface found.\n");
                 return ENXIO;
             }
-
-            // Attach BPF to the interface
-            bpf_desc = bpfattach(ifp, DLT_EN10MB, sizeof(struct ether_header));
-            if (!bpf_desc) {
-                printf("Error: Failed to attach BPF.\n");
-                return ENOMEM;
-            }
-
-            printf("Sniffer attached to interface: %s\n", ifp->if_xname);
             break;
 
         case MOD_UNLOAD:
-            if (bpf_desc) {
-                bpfdettach(bpf_desc); // Detach BPF on unload
-                printf("Sniffer detached from interface.\n");
+            if (sniffer_ifp) {
+                bpf_detach(sniffer_ifp);
+                printf("Sniffer detached from interface: %s\n", sniffer_ifp->if_xname);
             }
             printf("Sniffer module unloaded.\n");
             break;
