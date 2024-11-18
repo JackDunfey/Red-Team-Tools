@@ -27,7 +27,6 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     struct icmphdr *icmph;
     struct sk_buff *new_skb;
     struct ethhdr *eth, *old_eth;
-    struct net_device *out_dev;
     unsigned char *data;
     int icmp_payload_len;
 
