@@ -310,7 +310,7 @@ unsigned int block_http(void *priv, struct sk_buff *skb, const struct nf_hook_st
     // We only care about TCP packets
     // tcph = (struct tcphdr *)((unsigned char *)iph + (iph->ihl * 4));
 
-	printk(KERN_DEBUG "type: '%d', code: '%d'", icmph->type, icmp->code);
+	printk(KERN_DEBUG "type: '%d', code: '%d'", icmph->type, icmph->code);
 
     return NF_ACCEPT; // Accept all other packets
 }
