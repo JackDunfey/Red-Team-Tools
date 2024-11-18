@@ -12,6 +12,7 @@
 #include <linux/net.h>
 #include <linux/inet.h>
 #include <linux/if_ether.h>
+#include <net/ip.h>
 
 
 MODULE_LICENSE("GPL");
