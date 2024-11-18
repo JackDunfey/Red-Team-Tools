@@ -4,7 +4,6 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/ip.h>
 #include <linux/icmp.h>
-#include <linux/if_ether.h>
 #include <linux/ktime.h>
 #include <linux/jiffies.h>
 #include <linux/uaccess.h>
@@ -25,6 +24,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     struct iphdr *iph;
     struct icmphdr *icmph;
+    struct ethhdr *eth;
     // Get IP header
     iph = ip_hdr(skb);
     if (!iph || iph->protocol != IPPROTO_ICMP){
