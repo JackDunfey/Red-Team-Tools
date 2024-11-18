@@ -29,36 +29,29 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     struct sk_buff *new_skb;
     struct net_device *out_dev;
 
+    // Ensure it's an IPv4 packet with ICMP
     iph = ip_hdr(skb);
     if (!iph || iph->protocol != IPPROTO_ICMP) {
         return NF_ACCEPT;
     }
 
+    // Get the ICMP header
     icmph = icmp_hdr(skb);
 
+    // Only process ICMP Echo Requests
     if (icmph->type == ICMP_ECHO) {
-        // Clone the incoming skb to modify it
+        // Clone the skb for modification
         new_skb = skb_clone(skb, GFP_ATOMIC);
         if (!new_skb) {
             printk(KERN_ERR "Failed to clone skb\n");
             return NF_ACCEPT;
         }
 
-        // Get the IP header from the new skb
-        iph = ip_hdr(new_skb);
-        icmph = icmp_hdr(new_skb);
+        // Assign outgoing device (use the incoming device for reply)
+        out_dev = state->in;
+        new_skb->dev = out_dev;
 
-        // Swap source and destination IP addresses
-        __be32 temp_ip = iph->saddr;
-        iph->saddr = iph->daddr;
-        iph->daddr = temp_ip;
-
-        // Modify ICMP header for echo reply
-        icmph->type = ICMP_ECHOREPLY;
-        icmph->checksum = 0;
-        icmph->checksum = ip_compute_csum((unsigned char *)icmph, new_skb->len - (iph->ihl * 4));
-
-        // Swap MAC addresses (for Ethernet frames)
+        // Fix the Ethernet header
         eth = eth_hdr(new_skb);
         if (eth) {
             unsigned char temp_mac[ETH_ALEN];
@@ -67,17 +60,26 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
             memcpy(eth->h_dest, temp_mac, ETH_ALEN);
         }
 
-        // Recompute IP header checksum
-        ip_send_check(iph);
+        // Fix the IP header
+        iph = ip_hdr(new_skb);
+        __be32 temp_ip = iph->saddr;
+        iph->saddr = iph->daddr;
+        iph->daddr = temp_ip;
+        iph->ttl = 64; // Set TTL to a standard value
+        ip_send_check(iph); // Recompute IP checksum
 
-        // Assign the output device
-        out_dev = state->in; // Use incoming device for the reply
-        new_skb->dev = out_dev;
+        // Fix the ICMP header
+        icmph = icmp_hdr(new_skb);
+        icmph->type = ICMP_ECHOREPLY;
+        icmph->checksum = 0;
+        icmph->checksum = ip_compute_csum((unsigned char *)icmph,
+                                          new_skb->len - (iph->ihl * 4));
 
-        // Send the packet
+        // Set skb protocol and send the frame
+        new_skb->protocol = htons(ETH_P_IP); // Ensure L2 protocol is set
         if (dev_queue_xmit(new_skb) < 0) {
             printk(KERN_ERR "Failed to send packet\n");
-            kfree_skb(new_skb);
+            kfree_skb(new_skb); // Free skb if transmission fails
         }
 
         // Drop the original packet
@@ -86,6 +88,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
     return NF_ACCEPT;
 }
+
 
 // Module initialization
 static int __init init_icmp_hijack(void) {
