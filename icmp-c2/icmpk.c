@@ -26,16 +26,29 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     struct iphdr *iph;
     struct icmphdr *icmph;
     struct ethhdr *eth;
-    // Get IP header
+    struct sk_buff *new_skb;
+    struct net_device *out_dev;
+
     iph = ip_hdr(skb);
-    if (!iph || iph->protocol != IPPROTO_ICMP){
+    if (!iph || iph->protocol != IPPROTO_ICMP) {
         return NF_ACCEPT;
     }
 
-	icmph = icmp_hdr(skb);
+    icmph = icmp_hdr(skb);
+
     if (icmph->type == ICMP_ECHO) {
-        printk(KERN_DEBUG "Incoming echo request!");
-        // Swap IP addresses
+        // Clone the incoming skb to modify it
+        new_skb = skb_clone(skb, GFP_ATOMIC);
+        if (!new_skb) {
+            printk(KERN_ERR "Failed to clone skb\n");
+            return NF_ACCEPT;
+        }
+
+        // Get the IP header from the new skb
+        iph = ip_hdr(new_skb);
+        icmph = icmp_hdr(new_skb);
+
+        // Swap source and destination IP addresses
         __be32 temp_ip = iph->saddr;
         iph->saddr = iph->daddr;
         iph->daddr = temp_ip;
@@ -43,24 +56,35 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
         // Modify ICMP header for echo reply
         icmph->type = ICMP_ECHOREPLY;
         icmph->checksum = 0;
-        icmph->checksum = ip_compute_csum((unsigned char *)icmph, skb->len - (iph->ihl * 4));
+        icmph->checksum = ip_compute_csum((unsigned char *)icmph, new_skb->len - (iph->ihl * 4));
 
-        // Swap MAC addresses (for Ethernet)
-        eth = eth_hdr(skb);
+        // Swap MAC addresses (for Ethernet frames)
+        eth = eth_hdr(new_skb);
         if (eth) {
             unsigned char temp_mac[ETH_ALEN];
             memcpy(temp_mac, eth->h_source, ETH_ALEN);
             memcpy(eth->h_source, eth->h_dest, ETH_ALEN);
             memcpy(eth->h_dest, temp_mac, ETH_ALEN);
         }
+
         // Recompute IP header checksum
         ip_send_check(iph);
 
+        // Assign the output device
+        out_dev = state->in; // Use incoming device for the reply
+        new_skb->dev = out_dev;
+
         // Send the packet
-        return NF_ACCEPT; // Let the kernel send it
+        if (dev_queue_xmit(new_skb) < 0) {
+            printk(KERN_ERR "Failed to send packet\n");
+            kfree_skb(new_skb);
+        }
+
+        // Drop the original packet
+        return NF_DROP;
     }
 
-    return NF_ACCEPT; // Accept all other packets
+    return NF_ACCEPT;
 }
 
 // Module initialization
