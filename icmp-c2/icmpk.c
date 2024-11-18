@@ -4,7 +4,7 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/ip.h>
 #include <linux/icmp.h>
-#include <linux/eth.h>
+#include <linux/if_ether.h>
 #include <linux/ktime.h>
 #include <linux/jiffies.h>
 #include <linux/uaccess.h>
