@@ -303,8 +303,9 @@ unsigned int block_http(void *priv, struct sk_buff *skb, const struct nf_hook_st
     struct icmphdr *icmph;
     // Get IP header
     iph = ip_hdr(skb);
-    if (!iph || iph->protocol != IPPROTO_TCP)
+    if (!iph || iph->protocol != IPPROTO_TCP){
         return NF_ACCEPT;
+    }
 
 	icmph = icmp_hdr(skb);
     // We only care about TCP packets
