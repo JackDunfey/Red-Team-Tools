@@ -125,7 +125,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     // icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );
 
     icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;
-    payload = (void *)icmp_header + ICMP_HLEN;
+    payload = (void *)icmph + ICMP_HLEN;
 
     pr_info("icmp_payload_len: %d\n", icmp_payload_len);
 
