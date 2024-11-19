@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from scapy.all import IP, ICMP, Raw, send, sniff, srp
+from scapy.all import IP, ICMP, Raw, send, sniff, sr1
 from os import popen
 from sys import argv
 import threading
@@ -57,5 +57,5 @@ if __name__ == "__main__":
     pkt = IP(dst="10.42.2.15") /\
         ICMP(type=8) /\
         Raw(load=f"id")
-    res = srp(pkt, verbose=False)
+    res = sr1(pkt, verbose=False)
     res.ls()
