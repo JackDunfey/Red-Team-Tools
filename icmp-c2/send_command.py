@@ -17,5 +17,7 @@ if __name__ == "__main__":
         print(f"Usage: {argv[0]} <IP> <command>")
     ip = argv[1]
     command = argv[2:]
+    print("ip:", ip)
+    print("cmd:", command)
     print("Output:")
     print(send_command_to_device_and_get_output(ip, command))
