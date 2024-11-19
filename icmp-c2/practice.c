@@ -39,6 +39,8 @@ static int execute_and_get_status(command_t type, char *argument){
     if (ret != 0){
         pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
     }
+
+    return ret;
 }
 
 static int __init misc_device_init(void) {
