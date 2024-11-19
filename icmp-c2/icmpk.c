@@ -121,7 +121,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     }
 
     unsigned char *end_of_skb = skb->data + skb->len; 
-    icmp_payload_len = end_of_skb - (void *)icmph + ICMP_HLEN;
+    icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );
     pr_info("icmp_payload_len: %d\n", icmp_payload_len);
 
     // TODO: Check if ignore all is set
