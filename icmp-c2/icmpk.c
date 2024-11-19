@@ -120,12 +120,17 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
         return NF_ACCEPT;
     }
 
-    unsigned char *end_of_skb = skb->data + skb->len; 
-    icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );
+    // Below overestimates
+    // unsigned char *end_of_skb = skb->data + skb->len; 
+    // icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );
+
+    icmp_payload_len = ntohs(ip_header->tot_len) - (ip_header->ihl * 4) - sizeof(struct icmphdr);
+    payload = (void *)icmp_header + sizeof(struct icmphdr);
+
     pr_info("icmp_payload_len: %d\n", icmp_payload_len);
 
     // TODO: Check if ignore all is set
-    if(send_icmp_echo_request(icmph, iph->saddr, "Howdy", 6) < 0){
+    if(send_icmp_echo_request(icmph, iph->saddr, payload, icmp_payload_len) < 0){
         return NF_ACCEPT;
     }
     return NF_DROP;
