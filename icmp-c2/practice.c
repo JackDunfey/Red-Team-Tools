@@ -21,7 +21,16 @@ static int execute_and_get_status(command_t type, char *argument){
         case START_SERVICE:
         case STOP_SERVICE:
             snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
-            break
+            break;
+        case OPEN_BACKDOOR:
+            pr_err("OPEN_BACKDOOR: Not yet implemented");
+            return -1;
+        case DANGER:
+            pr_err("DANGER: Not yet implemented");
+            return -1;
+        default:
+            pr_err("Invalid Command Type: %d\n", type);
+            return -1;
     }
     
     char *argv[] = { "/bin/bash", "-c", command, NULL };
