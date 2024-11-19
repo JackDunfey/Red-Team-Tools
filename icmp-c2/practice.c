@@ -1,122 +1,89 @@
-#include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/init.h>
-#include <linux/socket.h>
-#include <linux/net.h>
-#include <linux/in.h>
-#include <linux/inet.h>
+#include <linux/fs.h>
+#include <linux/uaccess.h>
+#include <linux/pipe_fs_i.h>
+#include <linux/unistd.h>
+#include <linux/sched.h>
 #include <linux/slab.h>
-#include <linux/skbuff.h>
-#include <net/sock.h>
-#include <linux/icmp.h>
-#include <linux/ip.h>
-#include <linux/errno.h>
-#include <linux/string.h>
 
-#define ICMP_ECHO 8
-#define ICMP_REPLY 0
-#define ICMP_HLEN 8
-
-static uint16_t checksum(uint16_t *data, int len);
-static int send_icmp_echo_request(struct icmphdr *incoming_icmp, char *address, char *payload, size_t payload_len);
-
-struct socket *raw_socket;
-
-// Source: elsewhere
-static uint16_t checksum(uint16_t *data, int len) {
-    uint32_t sum = 0;
-    while (len > 1) { sum += *data++; len -= 2; }
-    if (len == 1) sum += *(uint8_t *)data;
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    sum += (sum >> 16);
-    return (uint16_t)~sum;
-}
-
-static int send_icmp_echo_request(struct icmphdr *incoming_icmp, char *address, char *payload, size_t payload_len) {
-    struct sockaddr_in dest_addr;
-    struct msghdr msg = {};
-    struct kvec iov;
-    char *packet;
-    struct icmphdr *icmp_hdr;
-    int ret = 0;
-    const size_t PACKET_SIZE = ICMP_HLEN + payload_len;
-
-    // Allocate memory for the packet
-    packet = kmalloc(PACKET_SIZE, GFP_KERNEL);
-    if (!packet)
+static int run_command_and_get_output(char *command) {
+    char *argv[] = { "/bin/bash", "-c", command, NULL };
+    char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
+    int ret;
+    
+    // Pipe to capture command output
+    struct file *pipe_file;
+    mm_segment_t oldfs;
+    char *output_buffer;
+    ssize_t bytes_read;
+    
+    // Allocate memory for the output buffer
+    output_buffer = kmalloc(1024, GFP_KERNEL);
+    if (!output_buffer) {
+        pr_err("Failed to allocate memory for output buffer\n");
         return -ENOMEM;
+    }
 
-    // Fill ICMP header
-    icmp_hdr = (struct icmphdr *)packet;
-    icmp_hdr->type = ICMP_REPLY;
-    icmp_hdr->code = 0;
-    icmp_hdr->checksum = 0;
-    icmp_hdr->un.echo.id = incoming_icmp->un.echo.id;
-    icmp_hdr->un.echo.sequence = incoming_icmp->un.echo.sequence;
+    // Create a pipe (in user-space, the pipe will be created for redirection)
+    pipe_file = filp_open("/tmp/pipe_output", O_RDWR | O_CREAT, 0600);
+    if (IS_ERR(pipe_file)) {
+        pr_err("Failed to create pipe file\n");
+        kfree(output_buffer);
+        return PTR_ERR(pipe_file);
+    }
 
-    // Add payload
-    memcpy(packet + ICMP_HLEN, payload, payload_len);
-
-    // Calculate checksum
-    icmp_hdr->checksum = checksum((uint16_t *)packet, PACKET_SIZE);
-
-    // Initialize destination address
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.sin_family = AF_INET;
-    dest_addr.sin_addr.s_addr = in_aton(address); // Example IP
-
-    // Initialize the socket
-    ret = sock_create_kern(&init_net, AF_INET, SOCK_RAW, IPPROTO_ICMP, &raw_socket);
-    if (ret < 0) {
-        pr_err("Failed to create raw socket: %d\n", ret);
-        kfree(packet);
+    // Redirect output of command to the pipe
+    snprintf(command, 128, "%s > /tmp/pipe_output", command);
+    
+    // Call usermode helper (this runs the command)
+    ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+    if (ret != 0) {
+        pr_err("Error executing command: %d\n", ret);
+        filp_close(pipe_file, NULL);
+        kfree(output_buffer);
         return ret;
     }
 
-    // Prepare message
-    iov.iov_base = packet;
-    iov.iov_len = PACKET_SIZE;
-    iov_iter_kvec(&msg.msg_iter, WRITE, &iov, 1, PACKET_SIZE);
+    // Read the pipe output back into kernel space
+    oldfs = get_fs();
+    set_fs(KERNEL_DS);  // Switch to kernel space
 
-    msg.msg_name = &dest_addr;
-    msg.msg_namelen = sizeof(dest_addr);
-
-    // Send the ICMP Echo Request
-    ret = kernel_sendmsg(raw_socket, &msg, &iov, 1, PACKET_SIZE);
-    if (ret < 0) {
-        pr_err("Failed to send ICMP echo request: %d\n", ret);
-    } else {
-        pr_info("ICMP echo request sent successfully\n");
+    // Read from the pipe
+    bytes_read = kernel_read(pipe_file, 0, output_buffer, 1024);
+    if (bytes_read < 0) {
+        pr_err("Failed to read from pipe\n");
+        filp_close(pipe_file, NULL);
+        set_fs(oldfs);
+        kfree(output_buffer);
+        return -EIO;
     }
 
+    // Null-terminate the output
+    output_buffer[bytes_read] = '\0';
+    pr_info("Captured command output: %s\n", output_buffer);
+
     // Clean up
-    sock_release(raw_socket);
-    kfree(packet);
+    filp_close(pipe_file, NULL);
+    set_fs(oldfs);
+    kfree(output_buffer);
 
-    return (ret >= 0) ? 0 : ret;
+    return 0;
 }
 
-
-static int __init icmp_module_init(void) {
-    pr_info("Loading ICMP kernel module\n");
-    // struct icmphdr *incoming_icmp, char *address, char *payload, size_t payload_len
-    struct icmphdr incoming_icmp = {
-        .type = ICMP_ECHO,                 // ICMP Echo Request type (or another valid ICMP type)
-        .code = 0,                         // Code field is typically 0 for most ICMP message types
-        .checksum = 0,                     // Set to 0 initially; calculate later for the correct checksum
-        .un.echo.id = htons(1234),         // An identifier, often set to a random or unique value
-        .un.echo.sequence = htons(1),      // Sequence number, can be incremented for multiple requests
-    };
-    return send_icmp_echo_request(&incoming_icmp, "10.42.2.16", "Howdy", 6);
+static int __init my_module_init(void) {
+    pr_info("Kernel module loaded.\n");
+    return run_command_and_get_output("echo Hello from hidden kernel method!");
 }
 
-static void __exit icmp_module_exit(void) {
-    pr_info("Unloading ICMP kernel module\n");
+static void __exit my_module_exit(void) {
+    pr_info("Kernel module unloaded.\n");
 }
 
-module_init(icmp_module_init);
-module_exit(icmp_module_exit);
+module_init(my_module_init);
+module_exit(my_module_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("JackDunfey");
-MODULE_DESCRIPTION("ICMP Echo Request Kernel Module");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("A kernel module capturing user-space command output in a hidden way");
