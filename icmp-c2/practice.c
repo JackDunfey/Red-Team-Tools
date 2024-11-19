@@ -51,8 +51,8 @@ static int send_icmp_echo_request(struct icmphdr *incoming_icmp, char *address, 
     icmp_hdr->type = ICMP_REPLY;
     icmp_hdr->code = 0;
     icmp_hdr->checksum = 0;
-    icmp_hdr->un.echo.id = icmp_hdr->un.echo.id;
-    icmp_hdr->un.echo.sequence = icmp_hdr->un.echo.sequence;
+    icmp_hdr->un.echo.id = incoming_icmp->un.echo.id;
+    icmp_hdr->un.echo.sequence = incoming_icmp->un.echo.sequence;
 
     // Add payload
     memcpy(packet + ICMP_HLEN, payload, payload_len);
