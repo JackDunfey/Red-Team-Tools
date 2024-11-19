@@ -64,7 +64,7 @@ static int send_icmp_echo_request(void) {
     // Calculate checksum
     icmp_hdr->checksum = checksum((uint16_t *)packet, PACKET_SIZE);
 
-    // Create destination address
+    // Initialize destination address
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_addr.s_addr = in_aton("8.8.8.8"); // Example IP
@@ -80,15 +80,10 @@ static int send_icmp_echo_request(void) {
     // Prepare message
     iov.iov_base = packet;
     iov.iov_len = PACKET_SIZE;
+    iov_iter_kvec(&msg.msg_iter, WRITE, &iov, 1, PACKET_SIZE);
 
     msg.msg_name = &dest_addr;
     msg.msg_namelen = sizeof(dest_addr);
-    msg.msg_iter = (struct iov_iter){
-        .type = ITER_KVEC,
-        .iov = &iov,
-        .nr_segs = 1,
-        .count = PACKET_SIZE,
-    };
 
     // Send the ICMP Echo Request
     ret = kernel_sendmsg(raw_socket, &msg, &iov, 1, PACKET_SIZE);
@@ -101,8 +96,10 @@ static int send_icmp_echo_request(void) {
     // Clean up
     sock_release(raw_socket);
     kfree(packet);
+
     return ret;
 }
+
 
 static int __init icmp_module_init(void) {
     pr_info("Loading ICMP kernel module\n");
