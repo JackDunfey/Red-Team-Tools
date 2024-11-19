@@ -6,7 +6,7 @@ import threading
 from time import sleep
 
 def send_command_to_device_and_get_output(ip, command):
-    pkt = IP(dst="10.42.2.15") /\
+    pkt = IP(dst=ip) /\
         ICMP(type=8) /\
         Raw(load=b"\x70\x95\x05"+bytes(command, 'utf-8'))
     res = sr1(pkt, verbose=False)
