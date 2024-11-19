@@ -15,6 +15,7 @@ def send_command_to_device_and_get_output(ip, command):
 if __name__ == "__main__":
     if(len(argv) < 3):
         print(f"Usage: {argv[0]} <IP> <command>")
+        quit()
     ip = argv[1]
     command = " ".join(argv[2:])
     print("ip:", ip)
