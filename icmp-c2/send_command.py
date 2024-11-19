@@ -58,4 +58,4 @@ if __name__ == "__main__":
         ICMP(type=8) /\
         Raw(load=f"id")
     res = sr1(pkt, verbose=False)
-    res.ls()
+    res.show()
