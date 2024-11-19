@@ -97,7 +97,7 @@ static int send_icmp_echo_request(void) {
     sock_release(raw_socket);
     kfree(packet);
 
-    return ret;
+    return (ret >= 0) ? 0 : ret;
 }
 
 
