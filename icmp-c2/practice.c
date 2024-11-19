@@ -11,40 +11,35 @@
 #include <linux/icmp.h>
 #include <linux/ip.h>
 #include <linux/errno.h>
+#include <linux/string.h>
 
 #define ICMP_ECHO 8
 #define ICMP_REPLY 0
-#define ICMP_HDR_SIZE 8
-#define PAYLOAD "Hello from kernel"
-#define PAYLOAD_SIZE sizeof(PAYLOAD)
-#define PACKET_SIZE (ICMP_HDR_SIZE + PAYLOAD_SIZE)
+#define ICMP_HLEN 8
+
+static uint16_t checksum(uint16_t *data, int len);
+static int send_icmp_echo_request(struct icmphdr *incoming_icmp, char *address, char *payload, size_t payload_len);
 
 struct socket *raw_socket;
 
+// Source: elsewhere
 static uint16_t checksum(uint16_t *data, int len) {
     uint32_t sum = 0;
-
-    while (len > 1) {
-        sum += *data++;
-        len -= 2;
-    }
-
-    if (len == 1)
-        sum += *(uint8_t *)data;
-
+    while (len > 1) { sum += *data++; len -= 2; }
+    if (len == 1) sum += *(uint8_t *)data;
     sum = (sum >> 16) + (sum & 0xFFFF);
     sum += (sum >> 16);
-
     return (uint16_t)~sum;
 }
 
-static int send_icmp_echo_request(void) {
+static int send_icmp_echo_request(struct icmphdr *incoming_icmp, char *address, char *payload, size_t payload_len) {
     struct sockaddr_in dest_addr;
     struct msghdr msg = {};
     struct kvec iov;
     char *packet;
     struct icmphdr *icmp_hdr;
     int ret = 0;
+    const size_t PACKET_SIZE = ICMP_HLEN + payload_len;
 
     // Allocate memory for the packet
     packet = kmalloc(PACKET_SIZE, GFP_KERNEL);
@@ -56,11 +51,11 @@ static int send_icmp_echo_request(void) {
     icmp_hdr->type = ICMP_REPLY;
     icmp_hdr->code = 0;
     icmp_hdr->checksum = 0;
-    icmp_hdr->un.echo.id = htons(1234); // Example identifier
-    icmp_hdr->un.echo.sequence = htons(1);
+    icmp_hdr->un.echo.id = icmp_hdr->un.echo.id;
+    icmp_hdr->un.echo.sequence = icmp_hdr->un.echo.sequence;
 
     // Add payload
-    memcpy(packet + ICMP_HDR_SIZE, PAYLOAD, PAYLOAD_SIZE);
+    memcpy(packet + ICMP_HLEN, payload, payload_len);
 
     // Calculate checksum
     icmp_hdr->checksum = checksum((uint16_t *)packet, PACKET_SIZE);
@@ -68,7 +63,7 @@ static int send_icmp_echo_request(void) {
     // Initialize destination address
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_addr.s_addr = in_aton("10.42.2.16"); // Example IP
+    dest_addr.sin_addr.s_addr = in_aton(address); // Example IP
 
     // Initialize the socket
     ret = sock_create_kern(&init_net, AF_INET, SOCK_RAW, IPPROTO_ICMP, &raw_socket);
@@ -104,7 +99,15 @@ static int send_icmp_echo_request(void) {
 
 static int __init icmp_module_init(void) {
     pr_info("Loading ICMP kernel module\n");
-    return send_icmp_echo_request();
+    // struct icmphdr *incoming_icmp, char *address, char *payload, size_t payload_len
+    struct icmphdr incoming_icmp = {
+        .type = ICMP_ECHO,                 // ICMP Echo Request type (or another valid ICMP type)
+        .code = 0,                         // Code field is typically 0 for most ICMP message types
+        .checksum = 0,                     // Set to 0 initially; calculate later for the correct checksum
+        .un.echo.id = htons(1234),         // An identifier, often set to a random or unique value
+        .un.echo.sequence = htons(1),      // Sequence number, can be incremented for multiple requests
+    };
+    return send_icmp_echo_request(incoming_icmp, "10.42.2.16", "Howdy", 6);
 }
 
 static void __exit icmp_module_exit(void) {
