@@ -43,7 +43,7 @@ static int send_icmp_echo_request(void) {
     struct kvec iov;
     char *packet;
     struct icmphdr *icmp_hdr;
-    int ret;
+    int ret = 0;
 
     // Allocate memory for the packet
     packet = kmalloc(PACKET_SIZE, GFP_KERNEL);
