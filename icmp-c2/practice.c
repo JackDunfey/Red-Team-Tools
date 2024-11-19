@@ -14,9 +14,6 @@ typedef enum COMMANDS {
 } command_t;
 
 static int execute_and_get_status(command_t type, char *argument){
-    char *argv[] = { "/bin/bash", "-c", command, NULL };
-    char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
-
     char command[128] = {0};
     int ret;
     
@@ -26,8 +23,9 @@ static int execute_and_get_status(command_t type, char *argument){
             snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
             break
     }
-
     
+    char *argv[] = { "/bin/bash", "-c", command, NULL };
+    char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
     ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
     if (ret != 0){
         pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
