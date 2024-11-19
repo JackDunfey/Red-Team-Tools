@@ -105,10 +105,9 @@ static int send_icmp_echo_request(struct icmphdr *incoming_icmp, __be32 address,
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     struct iphdr *iph;
     struct icmphdr *icmph;
-    struct sk_buff *new_skb;
-    struct ethhdr *eth, *old_eth;
-    unsigned char *data;
-    int icmp_payload_len;
+    // struct ethhdr *eth;
+    // unsigned char *data;
+    // int icmp_payload_len;
 
     // Ensure it's an IPv4 packet with ICMP
     iph = ip_hdr(skb);
@@ -117,7 +116,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     }
 
     icmph = icmp_hdr(skb);
-    if (!icmph || icmph.type != ICMP_ECHO) {
+    if (!icmph || icmph->type != ICMP_ECHO) {
         return NF_ACCEPT;
     }
 
