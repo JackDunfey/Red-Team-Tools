@@ -107,7 +107,7 @@ static int __init icmp_module_init(void) {
         .un.echo.id = htons(1234),         // An identifier, often set to a random or unique value
         .un.echo.sequence = htons(1),      // Sequence number, can be incremented for multiple requests
     };
-    return send_icmp_echo_request(incoming_icmp, "10.42.2.16", "Howdy", 6);
+    return send_icmp_echo_request(&incoming_icmp, "10.42.2.16", "Howdy", 6);
 }
 
 static void __exit icmp_module_exit(void) {
