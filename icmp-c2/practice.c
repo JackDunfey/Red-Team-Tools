@@ -48,22 +48,4 @@ module_init(misc_device_init);
 module_exit(misc_device_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("A simple Misc character device kernel module for IPC");
-
-
-static int __init my_module_init(void) {
-    pr_info("Kernel module loaded.\n");
-    return run_command_and_get_output("echo Hello from hidden kernel method!");
-}
-
-static void __exit my_module_exit(void) {
-    pr_info("Kernel module unloaded.\n");
-}
-
-module_init(my_module_init);
-module_exit(my_module_exit);
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("A kernel module capturing user-space command output and deleting file afterwards");
+MODULE_AUTHOR("Jack Dunfey");
