@@ -41,7 +41,7 @@ static int __init misc_device_init(void) {
 }
 
 static void __exit misc_device_exit(void) {
-    misc_deregister(&misc_dev);
+    pr_info("Module unloaded\n");
 }
 
 module_init(misc_device_init);
