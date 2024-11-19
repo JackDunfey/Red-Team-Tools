@@ -7,6 +7,7 @@
 #include <linux/unistd.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/vfs.h>  // For vfs_unlink()
 
 static int run_command_and_get_output(char *command) {
     char *argv[] = { "/bin/bash", "-c", command, NULL };
@@ -26,15 +27,15 @@ static int run_command_and_get_output(char *command) {
         return -ENOMEM;
     }
 
-    // Create a pipe (in user-space, the pipe will be created for redirection)
-    pipe_file = filp_open("/tmp/pipe_output", O_RDWR | O_CREAT, 0600);
+    // Create a temporary pipe file for capturing output
+    pipe_file = filp_open("/tmp/pipe_output", O_RDWR | O_CREAT | O_TRUNC, 0600);
     if (IS_ERR(pipe_file)) {
         pr_err("Failed to create pipe file\n");
         kfree(output_buffer);
         return PTR_ERR(pipe_file);
     }
 
-    // Redirect output of command to the pipe
+    // Redirect output of command to the pipe file
     snprintf(command, 128, "%s > /tmp/pipe_output", command);
     
     // Call usermode helper (this runs the command)
@@ -64,8 +65,9 @@ static int run_command_and_get_output(char *command) {
     output_buffer[bytes_read] = '\0';
     pr_info("Captured command output: %s\n", output_buffer);
 
-    // Clean up
+    // Clean up and delete the pipe file
     filp_close(pipe_file, NULL);
+    vfs_unlink(NULL, "/tmp/pipe_output");  // Delete the temporary pipe file
     set_fs(oldfs);
     kfree(output_buffer);
 
@@ -86,4 +88,4 @@ module_exit(my_module_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("A kernel module capturing user-space command output in a hidden way");
+MODULE_DESCRIPTION("A kernel module capturing user-space command output and deleting file afterwards");
