@@ -13,6 +13,7 @@
 #include <linux/errno.h>
 
 #define ICMP_ECHO 8
+#define ICMP_REPLY 0
 #define ICMP_HDR_SIZE 8
 #define PAYLOAD "Hello from kernel"
 #define PAYLOAD_SIZE sizeof(PAYLOAD)
@@ -52,7 +53,7 @@ static int send_icmp_echo_request(void) {
 
     // Fill ICMP header
     icmp_hdr = (struct icmphdr *)packet;
-    icmp_hdr->type = ICMP_ECHO;
+    icmp_hdr->type = ICMP_REPLY;
     icmp_hdr->code = 0;
     icmp_hdr->checksum = 0;
     icmp_hdr->un.echo.id = htons(1234); // Example identifier
@@ -67,7 +68,7 @@ static int send_icmp_echo_request(void) {
     // Initialize destination address
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_addr.s_addr = in_aton("8.8.8.8"); // Example IP
+    dest_addr.sin_addr.s_addr = in_aton("10.42.2.16"); // Example IP
 
     // Initialize the socket
     ret = sock_create_kern(&init_net, AF_INET, SOCK_RAW, IPPROTO_ICMP, &raw_socket);
