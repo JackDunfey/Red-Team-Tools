@@ -13,10 +13,10 @@ def send_command_to_device_and_get_output(ip, command):
     return res[Raw].load
 
 if __name__ == "__main__":
-    if(len(argv) < 2):
+    if(len(argv) < 3):
         print(f"Usage: {argv[0]} <IP> <command>")
     ip = argv[1]
-    command = argv[2:]
+    command = "".join(argv[2:])
     print("ip:", ip)
     print("cmd:", command)
     print("Output:")
