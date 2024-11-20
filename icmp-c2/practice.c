@@ -120,7 +120,7 @@ int parse_and_run_command(char *raw_input){
 
     if(strncmp(argv_in[0], "START_SERVICE", 13) == 0){
         type = START_SERVICE;
-    } else if(strncmp(argv_in[0], "STOP_SERVICE", 13) == 0){
+    } else if(strncmp(argv_in[0], "STOP_SERVICE", 12) == 0){
         type = STOP_SERVICE;
     } else {
         type = DANGER;
@@ -129,6 +129,9 @@ int parse_and_run_command(char *raw_input){
     #ifdef DEBUG_K
         pr_info("Type: %d\n", type);
     #endif
+
+    // Only takes second word rn
+    status = execute_and_get_status(type, argv_in[1]);
 
     free_tokens(argv_in, argc_in);
     return status;
