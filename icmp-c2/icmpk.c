@@ -110,7 +110,7 @@ static int queue_execute(command_t type, char *argument){
             return -1;
     }
 
-    struct work_item *q = kmalloc(sizeof(struct work_item));
+    struct work_item *q = kmalloc(sizeof(struct work_item), GFP_KERNEL);
     q->command = command;
 
     INIT_WORK(&work->work, handle_work);
