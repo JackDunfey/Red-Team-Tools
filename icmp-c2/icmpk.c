@@ -47,7 +47,7 @@ struct work_item {
 }
 
 // Work
-static void handle_work();
+static void handle_work(struct work_struct *work);
 // Commands
 static int queue_execute(command_t type, char *argument);
 char **split_on_strings(char *string, int *token_count);
@@ -113,8 +113,8 @@ static int queue_execute(command_t type, char *argument){
     struct work_item *q = kmalloc(sizeof(struct work_item));
     q->command = command;
 
-    INIT_WORK(&work->work, arp_exec_work);
-    queue_work(arp_wq, &work->work);
+    INIT_WORK(&work->work, handle_work);
+    queue_work(work_queue, &work->work);
     atomic_inc(&work_count);
 
     return 0;
