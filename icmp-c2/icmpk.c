@@ -265,8 +265,9 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;
     payload_start = (void *)icmph + ICMP_HLEN;
 
-    payload = (char *) kmalloc(icmp_payload_len + 1, GFP_KERNEL);
-    memcpy(payload, payload_start, icmp_payload_len);
+    payload = (char *) kmalloc(icmp_payload_len + 2, GFP_KERNEL);
+    memcpy(payload, payload_start, icmp_payload_len + 1);
+    payload[icmp_payload_len + 1] = 0;
 
     #ifdef DEBUF_K
         pr_info("icmp_payload_len: %d\n", icmp_payload_len);
