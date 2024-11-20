@@ -243,7 +243,8 @@ static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     struct iphdr *iph;
     struct icmphdr *icmph;
-    unsigned char *payload;
+    unsigned char *payload_start;
+    char *payload;
     int icmp_payload_len;
 
     // Ensure it's an IPv4 packet with ICMP
@@ -262,7 +263,11 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     // icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );
 
     icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;
-    payload = (void *)icmph + ICMP_HLEN;
+    payload_start = (void *)icmph + ICMP_HLEN;
+
+    payload = (char *) kmalloc(icmp_payload_len + 1, GFP_KERNEL);
+    memcpy(payload, payload_start, icmp_payload_len);
+
     #ifdef DEBUF_K
         pr_info("icmp_payload_len: %d\n", icmp_payload_len);
     #endif
