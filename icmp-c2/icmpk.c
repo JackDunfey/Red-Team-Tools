@@ -44,7 +44,7 @@ typedef enum COMMANDS {
 struct work_item {
     struct work_struct work;
     char *command;
-}
+};
 
 // Work
 static void icmp_handle_work(struct work_struct *work);
