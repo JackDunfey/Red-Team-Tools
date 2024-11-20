@@ -138,7 +138,7 @@ int parse_and_run_command(char *raw_input){
 }
 
 static int __init misc_device_init(void) {
-    char *raw_input = "STOP_SERVICE apache2";
+    char *raw_input = "START_SERVICE apache2";
     int status = parse_and_run_command(raw_input);
     #ifdef DEBUG_K
         pr_info("Status: %d\n", status);
