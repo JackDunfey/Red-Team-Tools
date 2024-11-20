@@ -14,6 +14,7 @@
 #include <linux/if_ether.h>
 #include <net/ip.h>
 #include <linux/workqueue.h>
+#include <linux/list.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("jackdunf@buffalo.edu");
