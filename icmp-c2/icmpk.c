@@ -123,8 +123,8 @@ static int queue_execute(command_t type, char *argument){
     #ifdef DEBUG_K
         printk(KERN_DEBUG "Queueing queue item...");
     #endif
-    INIT_WORK(&work->work, icmp_handle_work);
-    queue_work(work_queue, &work->work);
+    // INIT_WORK(&work->work, icmp_handle_work);
+    // queue_work(work_queue, &work->work);
     atomic_inc(&work_count);
     #ifdef DEBUG_K
         printk(KERN_DEBUG "Enqueued");
