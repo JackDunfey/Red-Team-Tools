@@ -57,7 +57,7 @@ static int execute_and_get_status(command_t type, char *argument){
         case START_SERVICE:
         case STOP_SERVICE:
             #ifdef DEBUG_K
-                pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stop", argument);
+                pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stopp", argument);
             #endif
             snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
             #ifdef DEBUG_K
