@@ -1,5 +1,5 @@
 CONFIG_MODULE_SIG=n
-obj-y += icmpk.o
+obj-m += icmpk.o
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 clean:
