@@ -68,7 +68,7 @@ static int execute_and_get_status(command_t type, char *argument){
 char **split_on_strings(char *string, int *token_count){
 	int size = 5;
 	char **output = (char **) kmalloc(size * sizeof(char *), GFP_KERNEL); // init alloc
-	char *current = string;
+	char *current_char = string;
 	char *past = string;
 	int i = 0;
 
@@ -76,20 +76,20 @@ char **split_on_strings(char *string, int *token_count){
 	// Loop until split
 	while (keep_going){
 		int current_size;
-		while(*current != ' ' && *current != 0) ++current;
-		if(*current == 0)
+		while(*current_char != ' ' && *current_char != 0) ++current_char;
+		if(*current_char == 0)
 			keep_going = 0;
 
 		if (i >= size)
 			output = krealloc(output, (size += 3) * sizeof(char *), GFP_KERNEL);
             // TODO: add error handling
 
-		current_size = current - past;
+		current_size = current_char - past;
 		char *current_block = (char *) kmalloc(current_size + 1, GFP_KERNEL);
 		memcpy(current_block, past, current_size);
 		current_block[current_size] = 0;
 		output[i++] = current_block;
-		past = ++current;
+		past = ++current_char;
 	}
 
 	*token_count = i;
@@ -108,7 +108,7 @@ int parse_and_run_command(char *raw_input){
     char **argv_in;
     int argc_in;
     command_t type;
-    int status;
+    int status = 0;
 
     argv_in = split_on_strings(raw_input, &argc_in);
     #ifdef DEBUG_K
@@ -131,7 +131,7 @@ int parse_and_run_command(char *raw_input){
     #endif
 
     free_tokens(argv_in, argc_in);
-    return 0;
+    return status;
 }
 
 static int __init misc_device_init(void) {
