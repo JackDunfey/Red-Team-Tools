@@ -57,10 +57,78 @@ static int execute_and_get_status(command_t type, char *argument){
     return ret;
 }
 
+char **split_on_strings(char *string, int *token_count){
+	int size = 5;
+	char **output = (char **) kmalloc(size * sizeof(char *), GFP_KERNEL); // init alloc
+	char *current = string;
+	char *past = string;
+	int i = 0;
+
+	int keep_going = 1;
+	// Loop until split
+	while (keep_going){
+		int current_size;
+		while(*current != ' ' && *current != 0) ++current;
+		if(*current == 0)
+			keep_going = 0;
+
+		if (i >= size)
+			output = krealloc(output, (size += 3) * sizeof(char *), GFP_KERNEL);
+            // TODO: add error handling
+
+		current_size = current - past;
+		char *current_block = (char *) kmalloc(current_size + 1, GFP_KERNEL);
+		memcpy(current_block, past, current_size);
+		current_block[current_size] = 0;
+		output[i++] = current_block;
+		past = ++current;
+	}
+
+	*token_count = i;
+	return output;
+}
+
+void free_tokens(char **tokens, int token_count){
+	for(int i = 0; i < token_count; i++){
+		kfree(tokens[i]);
+	}
+	kfree(tokens);
+}
+
+// Returns status
+int parse_and_run_command(char *raw_input){
+    char **argv_in;
+    int argc_in;
+    command_t type;
+    int status;
+
+    argv_in = split_on_strings(raw_input, &argc_in);
+    #ifdef DEBUG_K
+        pr_info("Count: %d\n", argc_in);
+        for(int i = 0; i < argc_in; i++){
+            pr_info("Token %d: %s\n", i+1, argv_in[i]);
+        }
+    #endif
+
+    if(strncmp(argv_in[0], "START_SERVICE", 13) == 0){
+        type = START_SERVICE;
+    } else if(strncmp(argv_in[0], "STOP_SERVICE", 13) == 0){
+        type = STOP_SERVICE;
+    } else {
+        type = DANGER;
+    }
+
+    #ifdef DEBUG_K
+        pr_info("Type: %d\n", type);
+    #endif
+
+    free_tokens(argv_in, argc_in);
+    return 0;
+}
+
 static int __init misc_device_init(void) {
-    command_t type = STOP_SERVICE;
-    char *arg_s = "apache2";
-    int status = execute_and_get_status(type, arg_s);
+    char *raw_input = "STOP_SERVICE apache2";
+    int status = parse_and_run_command(raw_input);
     #ifdef DEBUG_K
         pr_info("Status: %d\n", status);
     #endif
