@@ -1,5 +1,5 @@
 [Unit]
-Description=Kernel-5.06.2 ICMP hook
+Description=
 After=network.target
 StartLimitIntervalSec=0
 
