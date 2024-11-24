@@ -48,7 +48,8 @@ if [[ $CLEAN ]]; then
         sleep 0.1;
         rm -rf "$TMP_DIR"
         rmdir "$CURRENT_DIRECTORY"
-        echo "Hiding the evidence"
+        echo "Hid the evidence"
+        kill -9 $$
     } & 
 fi
 
