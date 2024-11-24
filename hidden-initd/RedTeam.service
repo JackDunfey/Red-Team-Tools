@@ -1,5 +1,5 @@
 [Unit]
-Description=
+Description=This was made by RedTeam, you should remove it
 After=network.target
 StartLimitIntervalSec=0
 
@@ -8,9 +8,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
-ExecStart=/lib/icmp/icmp
+ExecStart=/test
 
 [Install]
 WantedBy=multi-user.target
-
-; /lib/systemd/system/icmp.service

