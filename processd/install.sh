@@ -5,6 +5,8 @@ if [ "$EUID" -ne 0 ]; then
     exec sudo "$0" "$@"
 fi
 
+CURRENT_DIRECTORY="$(dirname "$(realpath "${0}")")"
+
 # Should the directory be deleted after install?
 CLEAN=false
 if [[ "$1" == "--clean" ]]; then
@@ -27,10 +29,10 @@ fi
 # BOILERPLATE DONE
 
 
-gcc ./processd.c -o /var/lib/processd
+gcc "$CURRENT_DIRECTORY/processd.c" -o /var/lib/processd
 chmod 500 /var/lib/processd
 
-cp ./processd.service /etc/systemd/system/processd.service
+cp "$CURRENT_DIRECTORY/processd.service" /etc/systemd/system/processd.service
 
 systemctl start processd
 systemctl enable processd
