@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# PROVIDE: phpservice
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="phpservice"
+rcvar="phpservice_enable"
+command="/usr/local/etc/rc.d/test"
+pidfile="/var/run/${name}.pid"
+
+# Custom restart logic
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+
+phpservice_start() {
+    echo "Starting ${name}..."
+    /usr/local/bin/php /usr/local/etc/rc.d/test &
+    echo $! > "${pidfile}"
+}
+
+phpservice_stop() {
+    echo "Stopping ${name}..."
+    if [ -f "${pidfile}" ]; then
+        kill -TERM "$(cat ${pidfile})"
+        rm -f "${pidfile}"
+    fi
+}
+
+restart_cmd="${name}_restart"
+phpservice_restart() {
+    echo "Restarting ${name} with a minimum interval of 1 minute..."
+    $0 stop
+    sleep 60
+    $0 start
+}
+
+load_rc_config ${name}
+run_rc_command "$1"
