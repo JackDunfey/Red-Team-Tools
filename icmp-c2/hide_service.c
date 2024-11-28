@@ -1,51 +1,58 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/ftrace.h>
+#include <linux/sched.h>
+#include <linux/tracepoint.h>
 #include <linux/fs.h>
-#include <linux/path.h>
-#include <linux/dirent.h>
-#include <linux/namei.h>
-#include <linux/errno.h>
-#include <linux/dcache.h>
+#include <linux/vfs.h>
 
-// Macro for the service to be hidden
-#define SERVICE_NAME "rt_jackdunf_kmod.service"
+// Declare the ftrace_ops structure
+static struct ftrace_ops ftrace_ops_example;
 
-// Declare module metadata
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("A kernel module to hide the systemd service rt_jackdunf_kmod.service");
-MODULE_VERSION("0.1");
+// This is the function that will be called when our ftrace hook is triggered
+static int ftrace_hook_fn(void *data, struct pt_regs *regs) {
+    pr_info("ftrace_hook_fn: Hooked function called!\n");
 
-// This function is called when the module is loaded
-static int __init hide_service_init(void)
-{
-    struct dentry *dentry;
-    struct path service_path;
-    char *service_file_path = "/etc/systemd/system/" SERVICE_NAME;
-
-    pr_info("Kernel module loaded. Attempting to hide service: %s\n", SERVICE_NAME);
-
-    // Hide the service file from being visible in the filesystem
-    dentry = kern_path(service_file_path, LOOKUP_FOLLOW, &service_path);
-    if (IS_ERR(dentry)) {
-        pr_err("Failed to find service file: %ld\n", PTR_ERR(dentry));
-        return -ENOENT;
-    }
-
-    // Unlink the service file to make it "invisible"
-    dput(dentry);  // Release the dentry reference
-    pr_info("Service file '%s' has been hidden successfully.\n", SERVICE_NAME);
-
+    // Optionally, you can modify the function behavior here.
+    // Return 0 to indicate successful handling of the trace.
     return 0;
 }
 
-// This function is called when the module is removed
-static void __exit hide_service_exit(void)
-{
-    pr_info("Kernel module unloaded. Service is now visible again (if re-created).\n");
+// Register the ftrace hook
+static int __init hook_init(void) {
+    int ret;
+
+    pr_info("Initializing ftrace hook...\n");
+
+    // Initialize ftrace_ops structure
+    ftrace_ops_example.func = (ftrace_func_t)ftrace_hook_fn;  // Correct function pointer type
+    ftrace_ops_example.flags = FTRACE_OPS_FL_SAVE_REGS; // Save the registers to avoid overwriting
+
+    // Register the hook to intercept vfs_read (which is often used for system reads)
+    ret = register_ftrace_function(&ftrace_ops_example);
+    if (ret) {
+        pr_err("Failed to register ftrace hook\n");
+        return ret;
+    }
+
+    pr_info("Ftrace hook successfully registered!\n");
+    return 0;
 }
 
-// Register the load and unload functions
-module_init(hide_service_init);
-module_exit(hide_service_exit);
+// Unregister the ftrace hook
+static void __exit hook_exit(void) {
+    pr_info("Unloading ftrace hook...\n");
+
+    // Unregister the ftrace hook
+    unregister_ftrace_function(&ftrace_ops_example);
+
+    pr_info("Ftrace hook successfully unregistered!\n");
+}
+
+module_init(hook_init);
+module_exit(hook_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("Kernel Module to Hook with ftrace using ftrace_ops");
