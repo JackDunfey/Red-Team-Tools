@@ -67,6 +67,8 @@ if __name__ == "__main__":
         if len(args.inputs) >= 2:
             ip, command = args.inputs[0], ' '.join(args.inputs[1:])
             print(f"Using IP: {ip}, Command: {command}, Verbose: {args.verbose}")
+
+            send_command_to_device(ip, command, verbose=args.verbose)
         else:
             parser.error("You must provide both an IP and a command.")
 
