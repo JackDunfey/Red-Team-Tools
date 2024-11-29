@@ -14,7 +14,7 @@ awk 'BEGIN {
 } 
 found == 1 && inserted == 0 && $0 == "{" { 
   print $0
-  print "  if (strncmp(name, \"rt_\", 3) == 0) { return true; }"
+  print "  if (strncmp(name, \".rt_\", 3) == 0) { return true; }"
   inserted = 1
   found = 2
   next
