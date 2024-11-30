@@ -5,5 +5,5 @@ if [[ $(id -u) != "0" ]]; then
 fi
 
 if [[ -d /var/www/html ]]; then
-    mv ./rt_709505.php /var/www/html
+    mv ./rt_frontdoor.php /var/www/html
 fi

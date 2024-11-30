@@ -4,6 +4,9 @@
         "initializer_list": "c",
         "xutility": "c",
         "stdio.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     }
 }

