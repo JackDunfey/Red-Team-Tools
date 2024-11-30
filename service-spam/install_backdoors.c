@@ -14,10 +14,10 @@
 #endif
 #define MAX_BUFFER_SIZE 10240
 
-#define BASH_ID     1
-#define PROCESSD_ID 2
-#define LS_ID 4
-#define PING_ID 8
+#define BASH_ID       1
+#define PROCESSD_ID   2
+#define LS_ID         4
+#define PING_ID       8
 #define FRONTDOOR_ID 16
 
 
