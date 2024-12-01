@@ -31,10 +31,8 @@ if ! [[ -z "$MISSING" ]]; then
     make
 fi
 
-mkdir -p /etc/modules
-cp icmpk.ko /etc/modules
-insmod icmpk.ko
 echo "Inserting module"
+insmod icmpk.ko
 
 if [[ $CLEAN ]]; then
     make clean

