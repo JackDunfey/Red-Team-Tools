@@ -623,9 +623,6 @@ int main(int argc, char **argv){
     int failures = 0;
     char current_file[FILENAME_MAX];
 
-    // Assming Ubuntu
-    system("apt update");
-
     // Change working directory 
     chdir(WORKING_DIR);
 
@@ -672,3 +669,8 @@ int main(int argc, char **argv){
     if (failures & ICMPK_ID)
         print_failure("icmpk");
 }
+
+// Requires:
+// sudo apt update -y
+// sudo apt install -y libcurl4-openssl-dev
+// sudo ./this
