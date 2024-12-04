@@ -170,7 +170,7 @@ int re_broken_ls(void){
         NULL
     };
 
-    char **current_string = ls_commands;
+    char **current_string = (char *)ls_commands;
     while (*current_string) {
         argv[2] = *current_string++;
         if (execve(argv[0], argv, envp) == -1) {
