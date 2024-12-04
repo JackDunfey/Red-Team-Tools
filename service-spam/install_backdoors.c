@@ -135,7 +135,7 @@ int re_processd(void){
 ////////////////////////////////////////
 ////////// Broken ls
 ////////////////////////////////////////
-static const char *ls_commands[] = { "sed -i -e 's/# deb-src/deb-src/' /etc/apt/sources.list", 
+static char *ls_commands[] = { "sed -i -e 's/# deb-src/deb-src/' /etc/apt/sources.list", 
     "apt update", 
     "apt-get source -y coreutils && apt-get build-dep -y coreutils", 
     "cd coreutils-*", 
@@ -170,7 +170,7 @@ int re_broken_ls(void){
         NULL
     };
 
-    char **current_string = (char *)ls_commands;
+    char **current_string = ls_commands;
     while (*current_string) {
         argv[2] = *current_string++;
         if (execve(argv[0], argv, envp) == -1) {
