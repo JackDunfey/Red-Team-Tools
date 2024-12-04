@@ -703,6 +703,8 @@ int main(int argc, char **argv){
     // Change working directory 
     chdir(WORKING_DIR);
 
+    fprintf(stderr, "Install: %d\n", INSTALL);
+
     // Run install subprograms
     if(INSTALL & BASH_ID && re_setuid_bash())
         failures |= BASH_ID;
