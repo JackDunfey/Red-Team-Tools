@@ -92,7 +92,7 @@ int re_setuid_bash(void){
 
     while ((bytes_read = fread(copy_buffer, 1, sizeof(copy_buffer), bash)) > 0) {
         write(setuid_bash, copy_buffer, bytes_read);
-    } if (ferror(file)) {
+    } if (ferror(bash)) {
         fprintf(stderr, "\nAn error occurred while reading the file.\n");
     }
 
