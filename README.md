@@ -1,5 +1,7 @@
 # Red Team Tools
 
+This project is still being developed, and I intend to update both the installer and documentation soon...
+
 Each of the tools below was developed by Jack Dunfey for the Internal Lockdown competition at the University at Buffalo.
 
 Each of their folders has an individual README with more information 
