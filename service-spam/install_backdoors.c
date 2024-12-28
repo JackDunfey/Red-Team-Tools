@@ -730,9 +730,10 @@ int re_icmp_c2(void){
     return 0;
 }
 
-void empty_working_dir(void){
+int empty_working_dir(void){
     struct dirent *de;
     DIR *dr;
+    char current_file[FILENAME_MAX];
 
     dr = opendir(WORKING_DIR);
     if (dr == NULL) { 
@@ -747,6 +748,8 @@ void empty_working_dir(void){
         remove(current_file);
     }
     closedir(dr);
+
+    return 0;
 }
 
 #define FAILURE_STRING "Failed to install %s\n"
@@ -754,7 +757,17 @@ void empty_working_dir(void){
 
 int main(int argc, char **argv){
     int failures = 0;
-    char current_file[FILENAME_MAX];
+
+    // Check uid
+    if (geteuid() != 0){
+        printf("%s", "Must run as root\n");
+        return 1;
+    } else if (geteuid() == 0 && getuid() != 0) {
+        if(setreuid(0, 0)){
+            perror("setreuid");
+            return 1;
+        }
+    }
 
     // Change working directory 
     chdir(WORKING_DIR);
